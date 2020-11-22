@@ -1,6 +1,8 @@
-# cross-stitch-designer
+# Cross Stitch Designer
 
-> `version: 0.0.1`
+> `version: Alpha 0.0.1`
+
+_**PLEASE NOTE:** This application is in super early alpha and will be undergoing massive changes as the overall design is designed and refined and implemented. You have been warned ;P_
 
 A web app for designing simple cross stitch patterns and sharing them with your friends.
 
