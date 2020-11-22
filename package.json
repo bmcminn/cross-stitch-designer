@@ -1,0 +1,9 @@
+{
+	"type": "",
+	"version": "0.0.1",
+	"license": "MIT",
+	"private": true,
+	"scripts": {
+		"serve": "php -S localhost:3005"
+	}
+}

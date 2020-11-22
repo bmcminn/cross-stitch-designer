@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Cross Stitch Designer</title>
+	<meta name="description" content="My official cross stitch design app, made with love <3 and built with P5.js">
+	<meta name="author" content="Brandtley McMinn <https://github.com/bmcminn/cross-stitch-designer>">
+	<meta name="viewport" content="width=device-width">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" />
+	<link rel="stylesheet" href="assets/reset.css">
+	<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+	<noscript>
+		This app requires JavaScript to work.
+	</noscript>
+
+	<main id="app">
+		<vue-p5
+			class="waffles"
+			@setup="setup"
+			@draw="draw"
+			@keypressed="keypressed"
+			@windowresized="windowresized"
+		></vue-p5>
+
+		<div class="controls">
+			Tools:
+			<button @click="setTool('linestitch')">Line Stitch</button>
+			<button @click="setTool('crossstitch')">Cross Stitch</button>
+			<button @click="setTool('blockstitch')">Block Stitch</button>
+		</div>
+
+		<div class="controls">
+			Tool Settings:
+			<button @click="setTool('linestitch')">Line Stitch</button>
+			<button @click="setTool('crossstitch')">Cross Stitch</button>
+			<button @click="setTool('blockstitch')">Block Stitch</button>
+		</div>
+
+		<div class="controls controls--colors">
+
+			<h3>Swatches:</h3>
+
+			<input type="color" v-model:value="selectedColor">
+			<button class="color-swatch"
+				@click="addColor()"
+			>+</button>
+
+
+			<div>
+				<button class="color-swatch"
+					v-for="(color, colorIndex) in colors"
+					:key="colorIndex"
+					:style="{ 'background-color': color }"
+					@click="setColor(color)"
+				></button>
+			</div>
+		</div>
+	</main>
+
+
+	<!-- // TODO: tools UI should be dynamically generated and appened to DOM  -->
+	<!--
+	<div class="tools">
+		<input type="radio" data-tool-id="0" data-tool="water">
+		<input type="radio" data-tool-id="1" data-tool="sand">
+		<input type="radio" data-tool-id="2" data-tool="dirt">
+		<input type="radio" data-tool-id="3" data-tool="stone">
+		<input type="radio" data-tool-id="4" data-tool="dock">
+	</div>
+	-->
+
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js" integrity="sha512-qoCTmFwBtCPvFhA+WAqatSOrghwpDhFHxwAGh+cppWonXbHA09nG1z5zi4/NGnp8dUhXiVrzA6EnKgJA+fyrpw==" crossorigin="anonymous"></script>
+	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js" integrity="sha512-WIklPM6qPCIp6d3fSSr90j+1unQHUOoWDS4sdTiR8gxUTnyZ8S2Mr8e10sKKJ/bhJgpAa/qG068RDkg6fIlNFA==" crossorigin="anonymous"></script> -->
+	<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+	<script src="https://unpkg.com/vue"></script>
+	<script src="https://unpkg.com/vue-p5"></script>
+	<!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
+	<script src="assets/app.js"></script>
+
+</body>
+</html>
