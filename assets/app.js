@@ -57,6 +57,49 @@ var app = new Vue({
                 { tile: 5 },
             ],
 
+            layers: [
+                {
+                    title: 'green',
+                    color: '#5fd12e',
+                    threadCount: 2,
+                    stitchType: 1,
+                    editingtitle: false,
+                    tiles: [
+
+                    ],
+                },
+                {
+                    title: 'pink',
+                    color: '#ff80ff',
+                    threadCount: 2,
+                    stitchType: 1,
+                    editingtitle: false,
+                    tiles: [
+
+                    ],
+                },
+                {
+                    title: 'puple',
+                    color: '#8080ff',
+                    threadCount: 2,
+                    stitchType: 1,
+                    editingtitle: false,
+                    tiles: [
+
+                    ],
+                },
+                {
+                    title: 'orange',
+                    color: '#ff9900',
+                    threadCount: 2,
+                    stitchType: 1,
+                    editingtitle: false,
+                    tiles: [
+
+                    ],
+                },
+            ],
+
             selectedColor: '#f60',
 
             colors: [
@@ -65,7 +108,6 @@ var app = new Vue({
                 '#ffff00',
                 '#f1e54a',
             ],
-
         }
     },
 
@@ -175,7 +217,6 @@ var app = new Vue({
         },
 
 
-
         zoom(level) {
 
             let newZoom = this.zoomLevel + (this.zoomAdjust * level)
@@ -201,9 +242,25 @@ var app = new Vue({
             this.selectedColor = color
         },
 
+
         addColor() {
             this.colors.push(this.selectedColor)
             this.save()
+        },
+
+
+        addNewLayer() {
+
+        },
+
+
+        moveLayer(index, dir) {
+            console.debug('moveLayer', index, dir)
+
+            let res = this.layers[index]
+            this.layers.splice(index, 1)
+            this.layers.splice(index + dir, 0, res)
+
         },
 
 

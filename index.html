@@ -39,15 +39,14 @@
 			<button @click="setTool('blockstitch')">Block Stitch</button>
 		</div>
 
-		<div class="controls controls--colors">
-
+		<div class="controls controls--sidebar">
+<!--
 			<h3>Swatches:</h3>
 
 			<input type="color" v-model:value="selectedColor">
 			<button class="color-swatch"
 				@click="addColor()"
 			>+</button>
-
 
 			<div>
 				<button class="color-swatch"
@@ -57,6 +56,53 @@
 					@click="setColor(color)"
 				></button>
 			</div>
+ -->
+			<h3>Layers</h3>
+
+			<ul class="controls controls--layers">
+				<li
+					v-for="(layer, layerIndex) in layers"
+					:key="layerIndex"
+					class="flex flex-row control--layer"
+				>
+
+					<input class="layer-color"
+						type="color"
+						v-model="layer.color"
+						:style="{
+							'background-color': layer.color
+						}"
+					/>
+
+			      	<div class="flex-grow">
+			      		<!-- // TODO: figure out a clickaway strategy -->
+			      	  	<label v-show="layer.editingtitle == false"
+			      	  		class="full-width"
+			      	  		@dblclick="layer.editingtitle=true"
+			      	  	>{{ layer.title }}</label>
+
+				      	<input v-show="layer.editingtitle == true"
+				      		v-model="layer.title"
+				      		v-on:blur="layer.editingtitle=false; $emit('update')"
+				      		@keyup.enter="layer.editingtitle=false; $emit('update')"
+				      		@keyup.esc="layer.editingtitle=false; $emit('update')"
+				      	/>
+			      	</div>
+
+			      	<!-- // TODO:  -->
+					<button @click="moveLayer(layerIndex, -1)"
+						:disabled="layerIndex === 0"
+					>
+						<span class="fas fa-fw fa-angle-up"></span>
+					</button>
+
+					<button @click="moveLayer(layerIndex, 1)"
+						:disabled="layerIndex === layers.length-1"
+					>
+						<span class="fas fa-fw fa-angle-down"></span>
+					</button>
+				</li>
+			</ul>
 		</div>
 	</main>
 
@@ -76,9 +122,9 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js" integrity="sha512-qoCTmFwBtCPvFhA+WAqatSOrghwpDhFHxwAGh+cppWonXbHA09nG1z5zi4/NGnp8dUhXiVrzA6EnKgJA+fyrpw==" crossorigin="anonymous"></script>
 	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js" integrity="sha512-WIklPM6qPCIp6d3fSSr90j+1unQHUOoWDS4sdTiR8gxUTnyZ8S2Mr8e10sKKJ/bhJgpAa/qG068RDkg6fIlNFA==" crossorigin="anonymous"></script> -->
 	<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+	<!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
 	<script src="https://unpkg.com/vue"></script>
 	<script src="https://unpkg.com/vue-p5"></script>
-	<!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
 	<script src="assets/app.js"></script>
 
 </body>

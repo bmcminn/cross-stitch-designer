@@ -20,16 +20,39 @@ body {
 }
 
 
-.controls {
-	position: fixed;
-	bottom: 0;
+.flex { display: flex; }
+.flex-row { flex-direction: row; }
+.flex-column { flex-direction: column; }
+
+.flex-grow { flex-grow: 1; }
+
+.control--layer {
+	justify-content: space-between;
 }
 
-.controls--colors {
+
+.controls {
+	position: fixed;
+}
+
+
+.controls--sidebar {
+	position: fixed;
 	bottom: unset;
 	right: 0;
 	top: 0;
+	height: 100%;
+	width: 16em;
 }
+
+
+.layer-color {
+	width: 25px;
+	height: 25px;
+	appearance: none;
+}
+
+
 
 .color-swatch,
 .color-swatch--color {
@@ -40,6 +63,22 @@ body {
 
 .color-swatch {
 	padding: 0;
+}
+
+.controls--layers {
+	margin: 1em 0;
+	padding: 0;
+	position: relative;
+	width: 100%;
+}
+
+.controls--layers li {
+	display: flex;
+	flex-direction: row;
+}
+
+.controls--layers button {
+	font-size: 0.7em;
 }
 
 
@@ -73,4 +112,10 @@ main {
 }
 .fa-pulse {
 	animation: pulse var(--anim-duration) linear infinite;
+}
+
+
+.full-width {
+	width: 100%;
+	display: block;
 }
