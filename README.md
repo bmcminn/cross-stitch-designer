@@ -18,3 +18,13 @@ A web app for designing simple cross stitch patterns and sharing them with your 
 ## Sharing links
 
 TBA
+
+
+
+## Made with:
+
+- `vue.js 3.0` - https://vuejs.org/
+- `p5.js` - https://p5js.org/
+- `vue-p5` - https://github.com/Kinrany/vue-p5
+- `lz-string` - https://github.com/pieroxy/lz-string/
+- Fontawesome `v5.1` - https://fontawesome.com/icons?d=gallery&s=solid&m=free
