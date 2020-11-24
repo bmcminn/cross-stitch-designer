@@ -6,8 +6,6 @@ var app = new Vue({
     el: '#app',
     data() {
         return {
-            message: 'Hello Vue!',
-
             DEBUG_MODE: false,
 
             // VIEW PROPS
@@ -100,14 +98,6 @@ var app = new Vue({
                 },
             ],
 
-            selectedColor: '#f60',
-
-            colors: [
-                '#ff9900',
-                '#ff0000',
-                '#ffff00',
-                '#f1e54a',
-            ],
         }
     },
 
@@ -151,30 +141,55 @@ var app = new Vue({
         },
 
 
-        compressData() {
+        save() {
+            let data = {
+                layers:     this.layers,
+                gridWidth:  this.gridWidth,
+                gridHeight: this.gridHeight,
+            }
 
-            let data = compress(this.gridData)
+            this.compressData(data)
+        },
+
+        load() {
+
+            if (window.location.hash.trim().length === 0) { return }
+
+            let data = decompress(window.location.hash.substr(1))
+
+            console.debug('load', data)
+
+            this.layers     = data.layers
+            this.gridWidth  = data.gridWidth
+            this.gridHeight = data.gridHeight
+        },
+
+
+
+        compressData(data) {
+
+            data = compress(data)
 
             if (history.pushState) {
-                history.pushState(null, null, data)
+                history.pushState(null, null, `#${data}`)
             } else {
-                window.location.hash = data
+                window.location.hash = `#${data}`
             }
 
         },
 
 
-        decompressData() {
-            this.gridData = decompress(window.location.hash)
-        },
+        // decompressData() {
+        //     return decompress(window.location.hash)
+        // },
 
 
         recalculateTilesize() {
             // recalculate tilesizes
             this.tilesize       = this.baseTilesize * this.zoomLevel // * (this.width / 1500)
 
-            this.gridWidth     = this.columns * this.tilesize
-            this.gridHeight    = this.rows    * this.tilesize
+            this.gridWidth      = this.columns * this.tilesize
+            this.gridHeight     = this.rows    * this.tilesize
         },
 
 
@@ -238,37 +253,26 @@ var app = new Vue({
         },
 
 
-        setColor(color) {
-            this.selectedColor = color
-        },
-
-
-        addColor() {
-            this.colors.push(this.selectedColor)
-            this.save()
-        },
-
-
         addNewLayer() {
 
         },
 
 
         moveLayer(index, dir) {
-            console.debug('moveLayer', index, dir)
-
             let res = this.layers[index]
             this.layers.splice(index, 1)
             this.layers.splice(index + dir, 0, res)
 
+            this.save()
         },
+
 
 
     },
 
 
-    mounted() {
-
+    created() {
+        this.load()
     },
 })
 
@@ -507,7 +511,8 @@ var app = new Vue({
  * @return void
  */
 function compress(data) {
-    return LZString.compress(JSON.stringify(data))
+    // return LZString.compress(JSON.stringify(data))
+    return lzwCompress.pack(data)
 }
 
 
@@ -516,7 +521,7 @@ function compress(data) {
  * @return {array<Tile>} A collection of `Tile()` objects
  */
 function decompress(data) {
-    return JSON.parse(LZString.decompress(data))
+    return lzwCompress.unpack(data.split(','))
 }
 
 
