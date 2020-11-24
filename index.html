@@ -69,6 +69,7 @@
 					<input class="layer-color"
 						type="color"
 						v-model="layer.color"
+						@change="save()"
 						:style="{
 							'background-color': layer.color
 						}"
