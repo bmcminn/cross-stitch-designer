@@ -10,7 +10,7 @@ var app = new Vue({
 
             // VIEW PROPS
             baseTilesize: 20,
-            tilesize: 1,
+            tilesize: 20,
 
             zoomAdjust: 0.5,
             zoomMin: 1,
@@ -19,6 +19,8 @@ var app = new Vue({
 
             width: window.width,
             height: window.height,
+
+            grid: [],
 
             gridWidth: 0,
             gridHeight: 0,
@@ -46,13 +48,6 @@ var app = new Vue({
             },
 
             gridData: [
-                { tile: 5 },
-                { tile: 5 },
-                { tile: 5 },
-                { tile: 5 },
-                { tile: 5 },
-                { tile: 5 },
-                { tile: 5 },
             ],
 
             layers: [
@@ -107,37 +102,113 @@ var app = new Vue({
 
 
     methods: {
-        setup(sketch) {
-            sketch.createCanvas(10,10)
 
-            this.windowresized(sketch)
+        // ==============================
+        //  P5 METHODS
+        // ==============================
 
-            sketch.background(255,128,0)
-            sketch.frameRate(this.framerate)
 
+        setup(sk) {
+            sk.createCanvas(10,10)
+
+            this.windowresized(sk)
+
+            sk.background(255,128,0)
+            sk.frameRate(this.framerate)
+
+            console.debug(sk)
             // setupEventBindings(this)
 
         },
 
 
-        draw(sketch) {
-            this.drawGrid(sketch)
-            this.drawDebug(sketch)
+        draw(sk) {
+            sk.clear()
+            sk.rect(50,50,50,50)
+            this.drawGrid(sk)
+            this.drawDebug(sk)
         },
 
 
-        windowresized(sketch) {
-            sketch.resizeCanvas(window.innerWidth - this.margin, window.innerHeight - this.margin)
-            this.recalculateTilesize()
+        windowresized(sk) {
+            sk.resizeCanvas(this.columns * this.tilesize, this.rows * this.tilesize)
+            // sk.resizeCanvas(window.innerWidth - this.margin, window.innerHeight - this.margin)
+            // this.recalculateTilesize()
         },
 
 
-        drawGrid(sketch) {
+        keypressed(sk) {
+            switch(sk.key) {
+                case 'F3':
+                    this.DEBUG_MODE = !this.DEBUG_MODE
+                    break
+            }
+        },
 
-            this.gridData.forEach((tile, index) => {
-                sketch.square(this.tilesize*++index,this.tilesize,this.tilesize)
+
+        drawGrid(sk) {
+            // if (this.rows < 1 && this.columns < 1) { return }
+
+            this.tilesize = 20
+
+            for (var i = this.gridData.length - 1; i >= 0; i--) {
+                let [x,y] = indexToXY(i, this.rows, this.columns)
+
+                sk.stroke(255, 204, 0);
+                sk.strokeWeight(4);
+
+                sk.rect(x * this.tilesize, y * this.tilesize, this.tilesize, this.tilesize)
+                // console.debug(x, y)
+            }
+        },
+
+
+        drawDebug(sk) {
+            sk.clear()
+            if (!this.DEBUG_MODE) { return }
+
+            let messages = [
+                `Framerate:           ${this.framerate}FPS`,
+                `MouseX:              ${sk.mouseX}`,
+                `MouseY:              ${sk.mouseY}`,
+                `X offset:            ${this.offsetX}`,
+                `Y offset:            ${this.offsetY}`,
+                `cells:               ${this.gridData.length}`,
+                `ViewOffset + MouseX: ${this.offsetX + sk.mouseX}`,
+                `ViewOffset + MouseY: ${this.offsetY + sk.mouseY}`,
+                `View Width:          ${this.width}`,
+                `View Height:         ${this.height}`,
+                `Map width:           ${this.gridWidth}`,
+                `Map height:          ${this.gridHeight}`,
+                `Zoom Level:          ${this.zoomLevel}`,
+            ]
+
+            let fontSize = 12
+
+            sk.textFont('monospace')
+            sk.textAlign(sk.LEFT, sk.CENTER)
+            sk.stroke('#000')
+            sk.strokeWeight(3)
+            sk.textSize(fontSize)
+            sk.fill(255)
+
+            messages.forEach((el, index) => {
+                sk.text(el, 10, ++index * fontSize + 10)
             })
+        },
 
+
+
+
+        // ==============================
+        //  APP UI METHODS
+        // ==============================
+
+
+        adjustGrid() {
+            this.gridData = new Array(this.rows * this.columns)
+
+            this.save()
         },
 
 
@@ -146,28 +217,30 @@ var app = new Vue({
                 layers:     this.layers,
                 gridWidth:  this.gridWidth,
                 gridHeight: this.gridHeight,
+                columns:    this.columns,
+                rows:       this.rows,
             }
 
             this.compressData(data)
         },
 
-        load() {
 
+        load() {
             if (window.location.hash.trim().length === 0) { return }
 
             let data = decompress(window.location.hash.substr(1))
 
-            console.debug('load', data)
-
             this.layers     = data.layers
             this.gridWidth  = data.gridWidth
             this.gridHeight = data.gridHeight
+            this.columns    = data.columns
+            this.rows       = data.rows
+
+            this.adjustGrid()
         },
 
 
-
         compressData(data) {
-
             data = compress(data)
 
             if (history.pushState) {
@@ -175,7 +248,6 @@ var app = new Vue({
             } else {
                 window.location.hash = `#${data}`
             }
-
         },
 
 
@@ -193,43 +265,7 @@ var app = new Vue({
         },
 
 
-        drawDebug(sketch) {
 
-            if (!this.DEBUG_MODE) { return }
-
-            let messages = [
-                `Framerate:           ${this.framerate}FPS`,
-                `MouseX:              ${mouseX}`,
-                `MouseY:              ${mouseY}`,
-                `X offset:            ${this.offsetX}`,
-                `Y offset:            ${this.offsetY}`,
-                `ViewOffset + MouseX: ${this.offsetX + mouseX}`,
-                `ViewOffset + MouseY: ${this.offsetY + mouseY}`,
-                `View Width:          ${width}`,
-                `View Height:         ${height}`,
-                `Map width:           ${this.gridWidth}`,
-                `Map height:          ${this.gridHeight}`,
-                `Zoom Level:          ${this.zoomLevel}`,
-            ]
-
-            let fontSize = 12
-
-            sketch.textFont('monospace')
-            sketch.textAlign(LEFT, CENTER)
-            sketch.stroke('#000')
-            sketch.strokeWeight(3)
-            sketch.textSize(fontSize)
-            sketch.fill(255)
-
-            messages.forEach((el, index) => {
-                sketch.text(el, 10, ++index * fontSize + 10)
-            })
-        },
-
-
-        keypressed(sketch) {
-
-        },
 
 
         zoom(level) {
@@ -267,6 +303,12 @@ var app = new Vue({
         },
 
 
+
+    },
+
+    mounted() {
+
+        document.body.classList.remove('no-js')
 
     },
 
@@ -555,4 +597,22 @@ function debounce(func, wait, immediate) {
         timeout = setTimeout(later, wait)
         if (callNow) func.apply(context, args)
     }
+}
+
+
+
+function indexToXY(index, width, height) {
+    if (index > width * height) { return [ null, null ] }
+
+    let x = index % width
+    let y = Math.floor(index / width)
+
+    return [x, y]
+}
+
+
+function xyToIndex(x, y, width, height) {
+    let index = x + (y * width)
+    if (index > width * height) { return null }
+    return index
 }

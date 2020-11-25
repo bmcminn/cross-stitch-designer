@@ -9,8 +9,14 @@
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" />
 	<link rel="stylesheet" href="assets/reset.css">
 	<link rel="stylesheet" href="assets/app.css">
+	<style type="text/css">
+		body.no-js #app {
+			display: none;
+		}
+	</style>
+
 </head>
-<body>
+<body class="no-js">
 
 	<noscript>
 		This app requires JavaScript to work.
@@ -40,6 +46,29 @@
 		</div>
 
 		<div class="controls controls--sidebar">
+			<h3>Document Setup</h3>
+
+			<div class="flex">
+				<label for="document-width">Width</label>
+				<input type="number"
+					name="document-width"
+					v-model="columns"
+					min="0"
+					max="40"
+					@change="adjustGrid()"
+				/>
+			</div>
+
+			<div class="flex">
+				<label for="document-height">Height</label>
+				<input type="number"
+					name="document-height"
+					v-model="rows"
+					@change="adjustGrid()"
+					min="0"
+					max="40"
+				/>
+			</div>
 			<!--
 			<h3>Swatches:</h3>
 
