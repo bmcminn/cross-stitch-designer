@@ -31,122 +31,95 @@
 			@windowresized="windowresized"
 		></vue-p5>
 
-		<div class="controls">
-			Tools:
-			<button @click="setTool('linestitch')">Line Stitch</button>
-			<button @click="setTool('crossstitch')">Cross Stitch</button>
-			<button @click="setTool('blockstitch')">Block Stitch</button>
-		</div>
-
-		<div class="controls">
-			Tool Settings:
-			<button @click="setTool('linestitch')">Line Stitch</button>
-			<button @click="setTool('crossstitch')">Cross Stitch</button>
-			<button @click="setTool('blockstitch')">Block Stitch</button>
-		</div>
-
 		<div class="controls controls--sidebar">
-			<h3>Document Setup</h3>
+            <section id="document-setup">
+    			<h3>Document Setup</h3>
 
-			<div class="flex">
-				<label for="document-width">Width</label>
-				<input type="number"
-					name="document-width"
-					v-model="columns"
-					min="0"
-					max="40"
-					@change="adjustGrid()"
-				/>
-			</div>
+    			<div class="flex">
+    				<label for="document-width">Width</label>
+    				<input type="number"
+    					name="document-width"
+    					v-model="columns"
+    					min="0"
+    					max="40"
+    					@change="adjustGrid()"
+    				/>
+    			</div>
 
-			<div class="flex">
-				<label for="document-height">Height</label>
-				<input type="number"
-					name="document-height"
-					v-model="rows"
-					@change="adjustGrid()"
-					min="0"
-					max="40"
-				/>
-			</div>
-			<!--
-			<h3>Swatches:</h3>
+    			<div class="flex">
+    				<label for="document-height">Height</label>
+    				<input type="number"
+    					name="document-height"
+    					v-model="rows"
+    					@change="adjustGrid()"
+    					min="0"
+    					max="40"
+    				/>
+    			</div>
+            </section>
 
-			<input type="color" v-model:value="selectedColor">
-			<button class="color-swatch"
-				@click="addColor()"
-			>+</button>
+			<section id="layers-panel">
+                <h3>
+    				Layers
+    				<button @click="newLayer">
+    					<small class="fas fa-fw fa-plus"></small>
+    				</button>
+    			</h3>
 
-			<div>
-				<button class="color-swatch"
-					v-for="(color, colorIndex) in colors"
-					:key="colorIndex"
-					:style="{ 'background-color': color }"
-					@click="setColor(color)"
-				></button>
-			</div>
-			 -->
-			<h3>Layers</h3>
+    			<ul class="controls controls--layers">
+    				<li
+    					v-for="(layer, layerIndex) in layers"
+    					:key="layerIndex"
+    					@click="selectLayer(layerIndex)"
+    					class="flex flex-row flex-center control--layer"
+                        :selected="selectedLayer === layerIndex"
+    				>
 
-			<ul class="controls controls--layers">
-				<li
-					v-for="(layer, layerIndex) in layers"
-					:key="layerIndex"
-					class="flex flex-row control--layer"
-				>
+    					<input class="layer-color"
+    						type="color"
+    						v-model="layer.color"
+    						@change="save()"
+    						:style="{
+    							'background-color': layer.color
+    						}"
+    					/>
 
-					<input class="layer-color"
-						type="color"
-						v-model="layer.color"
-						@change="save()"
-						:style="{
-							'background-color': layer.color
-						}"
-					/>
+    			      	<div class="flex-grow layer--name">
+    			      		<!-- // TODO: figure out a clickaway strategy -->
+    			      	  	<label v-show="layer.editingtitle == false"
+    			      	  		class="full-width"
+    			      	  		@dblclick="layer.editingtitle=true"
+    			      	  	>{{ layer.title }}</label>
 
-			      	<div class="flex-grow">
-			      		<!-- // TODO: figure out a clickaway strategy -->
-			      	  	<label v-show="layer.editingtitle == false"
-			      	  		class="full-width"
-			      	  		@dblclick="layer.editingtitle=true"
-			      	  	>{{ layer.title }}</label>
+    				      	<input v-show="layer.editingtitle == true"
+    				      		v-model="layer.title"
+    				      		v-on:blur="layer.editingtitle=false; $emit('update'); save()"
+    				      		@keyup.enter="layer.editingtitle=false; $emit('update'); save()"
+    				      		@keyup.esc="layer.editingtitle=false; $emit('update'); save()"
+    				      	/>
+    			      	</div>
 
-				      	<input v-show="layer.editingtitle == true"
-				      		v-model="layer.title"
-				      		v-on:blur="layer.editingtitle=false; $emit('update'); save()"
-				      		@keyup.enter="layer.editingtitle=false; $emit('update'); save()"
-				      		@keyup.esc="layer.editingtitle=false; $emit('update'); save()"
-				      	/>
-			      	</div>
+    			      	<!-- // TODO:  -->
+    					<button @click="moveLayer(layerIndex, -1)"
+    						:disabled="layerIndex === 0"
+    					>
+    						<span class="fas fa-fw fa-angle-up"></span>
+    					</button>
 
-			      	<!-- // TODO:  -->
-					<button @click="moveLayer(layerIndex, -1)"
-						:disabled="layerIndex === 0"
-					>
-						<span class="fas fa-fw fa-angle-up"></span>
-					</button>
+    					<button @click="moveLayer(layerIndex, 1)"
+    						:disabled="layerIndex === layers.length-1"
+    					>
+    						<span class="fas fa-fw fa-angle-down"></span>
+    					</button>
 
-					<button @click="moveLayer(layerIndex, 1)"
-						:disabled="layerIndex === layers.length-1"
-					>
-						<span class="fas fa-fw fa-angle-down"></span>
-					</button>
-				</li>
-			</ul>
+                        <button @click="deleteLayer(layerIndex)">
+                            <span class="fas fa-fw fa-trash"></span>
+                        </button>
+    				</li>
+    			</ul>
+            </section>
 		</div>
 	</main>
-
-
-	<!-- // TODO: tools UI should be dynamically generated and appened to DOM  -->
-	<!--
-	<div class="tools">
-		<input type="radio" data-tool-id="0" data-tool="water">
-		<input type="radio" data-tool-id="1" data-tool="sand">
-		<input type="radio" data-tool-id="2" data-tool="dirt">
-		<input type="radio" data-tool-id="3" data-tool="stone">
-		<input type="radio" data-tool-id="4" data-tool="dock">
-	</div>
-	-->
 
 
 	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js" integrity="sha512-WIklPM6qPCIp6d3fSSr90j+1unQHUOoWDS4sdTiR8gxUTnyZ8S2Mr8e10sKKJ/bhJgpAa/qG068RDkg6fIlNFA==" crossorigin="anonymous"></script> -->

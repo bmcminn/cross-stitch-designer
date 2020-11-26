@@ -6,6 +6,9 @@ var app = new Vue({
     el: '#app',
     data() {
         return {
+
+            sketch: null,
+
             DEBUG_MODE: false,
 
             // VIEW PROPS
@@ -37,6 +40,7 @@ var app = new Vue({
             margin: 0,
             framerate: 60,
             isScrolling: false,
+            selectedLayer: 0,
 
 
             currentTool: 'linestitch',
@@ -57,6 +61,7 @@ var app = new Vue({
                     threadCount: 2,
                     stitchType: 1,
                     editingtitle: false,
+                    isSelected: false,
                     tiles: [
 
                     ],
@@ -67,6 +72,7 @@ var app = new Vue({
                     threadCount: 2,
                     stitchType: 1,
                     editingtitle: false,
+                    isSelected: false,
                     tiles: [
 
                     ],
@@ -77,6 +83,7 @@ var app = new Vue({
                     threadCount: 2,
                     stitchType: 1,
                     editingtitle: false,
+                    isSelected: false,
                     tiles: [
 
                     ],
@@ -87,12 +94,12 @@ var app = new Vue({
                     threadCount: 2,
                     stitchType: 1,
                     editingtitle: false,
+                    isSelected: false,
                     tiles: [
 
                     ],
                 },
             ],
-
         }
     },
 
@@ -109,6 +116,8 @@ var app = new Vue({
 
 
         setup(sk) {
+
+            this.sketch = sk
             sk.createCanvas(10,10)
 
             this.windowresized(sk)
@@ -116,21 +125,19 @@ var app = new Vue({
             sk.background(255,128,0)
             sk.frameRate(this.framerate)
 
-            console.debug(sk)
             // setupEventBindings(this)
-
         },
 
 
         draw(sk) {
             sk.clear()
-            sk.rect(50,50,50,50)
             this.drawGrid(sk)
             this.drawDebug(sk)
         },
 
 
         windowresized(sk) {
+            sk = sk || this.sketch
             sk.resizeCanvas(this.columns * this.tilesize, this.rows * this.tilesize)
             // sk.resizeCanvas(window.innerWidth - this.margin, window.innerHeight - this.margin)
             // this.recalculateTilesize()
@@ -152,10 +159,10 @@ var app = new Vue({
             this.tilesize = 20
 
             for (var i = this.gridData.length - 1; i >= 0; i--) {
-                let [x,y] = indexToXY(i, this.rows, this.columns)
+                let [x,y] = indexToXY(i, this.columns, this.rows)
 
-                sk.stroke(255, 204, 0);
-                sk.strokeWeight(4);
+                sk.stroke(255, 204, 0)
+                sk.strokeWeight(2)
 
                 sk.rect(x * this.tilesize, y * this.tilesize, this.tilesize, this.tilesize)
                 // console.debug(x, y)
@@ -164,8 +171,9 @@ var app = new Vue({
 
 
         drawDebug(sk) {
-            sk.clear()
             if (!this.DEBUG_MODE) { return }
+
+            // sk.clear()
 
             let messages = [
                 `Framerate:           ${this.framerate}FPS`,
@@ -174,16 +182,16 @@ var app = new Vue({
                 `X offset:            ${this.offsetX}`,
                 `Y offset:            ${this.offsetY}`,
                 `cells:               ${this.gridData.length}`,
-                `ViewOffset + MouseX: ${this.offsetX + sk.mouseX}`,
-                `ViewOffset + MouseY: ${this.offsetY + sk.mouseY}`,
+                // `ViewOffset + MouseX: ${this.offsetX + sk.mouseX}`,
+                // `ViewOffset + MouseY: ${this.offsetY + sk.mouseY}`,
                 `View Width:          ${this.width}`,
                 `View Height:         ${this.height}`,
                 `Map width:           ${this.gridWidth}`,
                 `Map height:          ${this.gridHeight}`,
-                `Zoom Level:          ${this.zoomLevel}`,
+                // `Zoom Level:          ${this.zoomLevel}`,
             ]
 
-            let fontSize = 12
+            let fontSize = 14
 
             sk.textFont('monospace')
             sk.textAlign(sk.LEFT, sk.CENTER)
@@ -199,15 +207,40 @@ var app = new Vue({
 
 
 
-
         // ==============================
         //  APP UI METHODS
         // ==============================
 
+        newLayer() {
+            this.layers.unshift({
+                title:        `Layer ${this.layers.length}`,
+                color:        randomHex(), // '#5fd12e',
+                threadCount:  2,
+                stitchType:   1,
+                editingtitle: false,
+                tiles: [
+
+                ],
+            })
+
+            this.save()
+        },
+
+
+        deleteLayer(index) {
+            this.layers.splice(index, 1)
+            this.save()
+        },
+
+
+        selectLayer(index) {
+            this.selectedLayer = index
+        },
+
 
         adjustGrid() {
             this.gridData = new Array(this.rows * this.columns)
-
+            this.windowresized()
             this.save()
         },
 
@@ -251,13 +284,7 @@ var app = new Vue({
         },
 
 
-        // decompressData() {
-        //     return decompress(window.location.hash)
-        // },
-
-
         recalculateTilesize() {
-            // recalculate tilesizes
             this.tilesize       = this.baseTilesize * this.zoomLevel // * (this.width / 1500)
 
             this.gridWidth      = this.columns * this.tilesize
@@ -265,11 +292,7 @@ var app = new Vue({
         },
 
 
-
-
-
         zoom(level) {
-
             let newZoom = this.zoomLevel + (this.zoomAdjust * level)
 
             let minZoom = 1
@@ -303,8 +326,8 @@ var app = new Vue({
         },
 
 
-
     },
+
 
     mounted() {
 
@@ -317,67 +340,6 @@ var app = new Vue({
         this.load()
     },
 })
-
-
-
-// let DEBUG_MODE = false
-
-// p5.disableFriendlyErrors = true
-
-
-// let $canvas
-
-// // VIEW PROPS
-// let $view = {
-//     baseTilesize: 20,
-//     tilesize: 20,
-
-//     zoomAdjust: 0.5,
-//     zoomMin: 1,
-//     zoomMax: 5,
-//     zoomLevel: 3,
-
-//     width: window.width,
-//     height: window.height,
-
-//     gridWidth: 0,
-//     gridHeight: 0,
-
-//     columns: 30,
-//     rows: 30,
-
-//     offsetX: 0,
-//     offsetY: 0,
-
-//     prevOffsetX: 0,
-//     prevOffsetY: 0,
-
-//     margin: 1,
-//     framerate: 60,
-//     isScrolling: false,
-
-// }
-
-
-
-// const TILE_COLORS = [
-//     '#7bd8c3', //  water:
-//     '#3f7841', //  grass1:
-//     '#3d9d3d', //  grass2:
-//     '#5dc446', //  grass3:
-
-//     '#b0a07c', //  plaza:
-
-//     '#eae39f', //  sand:
-//     '#e8dc98', //  incline:
-//     '#a2895a', //  dock:
-//     '#787b8a', //  rock:
-
-//     '#fcbc13', //  house:
-//     '#fe81a9', // my- house
-//     '#b9ad6f', //  path:
-//     '#81856b', //  bridge:
-// ]
 
 
 
@@ -421,7 +383,6 @@ var app = new Vue({
 // })
 
 
-
 // // ==============================
 // //   APP RUNTIME / P5 METHODS
 // // ==============================
@@ -434,14 +395,12 @@ var app = new Vue({
 
 //     background(255, 0, 200)
 
-
 //     frameRate($view.framerate)
 
 //     setupEventBindings($view)
 
 //     console.debug('sefjakles')
 // }
-
 
 
 // /**
@@ -483,11 +442,7 @@ var app = new Vue({
 // // }
 
 
-
-
-
 // // TODO: convert this over to native P5 mousePressed(), mouseDragged(), and mouseReleased() events
-
 
 
 // function setupEventBindings(ctx) {
@@ -567,7 +522,6 @@ function decompress(data) {
 }
 
 
-
 function queryStringEncode(obj) {
     let queryString = []
 
@@ -581,7 +535,6 @@ function queryStringEncode(obj) {
 
     return '?' + queryString.join('&')
 }
-
 
 
 function debounce(func, wait, immediate) {
@@ -600,7 +553,6 @@ function debounce(func, wait, immediate) {
 }
 
 
-
 function indexToXY(index, width, height) {
     if (index > width * height) { return [ null, null ] }
 
@@ -615,4 +567,19 @@ function xyToIndex(x, y, width, height) {
     let index = x + (y * width)
     if (index > width * height) { return null }
     return index
+}
+
+
+function randomItem(list) {
+    return list[Math.floor(Math.random() * list.length)]
+}
+
+
+/**
+ * Paul Irish's random hex color code generator
+ * @sauce: https://www.paulirish.com/2009/random-hex-color-code-snippets/
+ * @return {string} A random hex color string
+ */
+function randomHex() {
+    return '#' + Math.floor(Math.random() * 16777215).toString(16)
 }

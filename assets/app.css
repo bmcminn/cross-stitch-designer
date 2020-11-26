@@ -27,16 +27,24 @@ body {
 .flex-column { flex-direction: column; }
 
 .flex-grow { flex-grow: 1; }
+.flex-center { align-items: center; }
 
-.control--layer {
-	justify-content: space-between;
-}
 
 
 .controls {
 	position: fixed;
 }
 
+input {
+	width: 100%;
+}
+
+
+.layer--name label,
+.layer--name input {
+	padding: 0.2em;
+	border: 1px solid transparent;
+}
 
 .controls--sidebar {
 	position: fixed;
@@ -45,16 +53,18 @@ body {
 	top: 0;
 	height: 100%;
 	width: 16em;
+	overflow-y: auto;
+}
+.controls--sidebar section {
+    margin: 1em 0;
 }
 
 
 .layer-color {
-	width: 25px;
-	height: 25px;
+	width: 12px;
+	height: 2em;
 	appearance: none;
 }
-
-
 
 .color-swatch,
 .color-swatch--color {
@@ -81,6 +91,15 @@ body {
 
 .controls--layers button {
 	font-size: 0.7em;
+}
+
+
+.control--layer {
+    justify-content: space-between;
+    cursor: pointer;
+}
+.control--layer[selected] {
+    background-color: #c6e6ff;
 }
 
 
