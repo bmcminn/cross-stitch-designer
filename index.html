@@ -16,7 +16,6 @@
 			display: none;
 		}
 	</style>
-
 </head>
 <body class="no-js">
 
@@ -113,7 +112,7 @@
 
 
                 <div class="flex">
-                    <label for="settings.aidaCount">AIDA Count</label>
+                    <label for="settings.aidaCount">Aida Count</label>
                     <input id="settings.aidaCount"
                         @change="adjustGrid()"
                         type="number"
@@ -122,6 +121,27 @@
                         v-model="settings.aidaCount"
                     />
                 </div>
+
+
+
+                <div>
+                    <label for="settings.gridBackgroundColor">Aida cloth color</label>
+                    <input id="settings.gridBackgroundColor"
+                        @change="save()"
+                        type="color"
+                        v-model="settings.gridBackgroundColor"
+                    />
+                </div>
+
+                <div>
+                    <label for="settings.gridLineColor">Grid line color</label>
+                    <input id="settings.gridLineColor"
+                        @change="save()"
+                        type="color"
+                        v-model="settings.gridLineColor"
+                    />
+                </div>
+
             </details>
 
 
@@ -139,24 +159,6 @@
                     />
                 </div>
 
-
-                <div>
-                    <label for="settings.gridBackgroundColor">Background color</label>
-                    <input id="settings.gridBackgroundColor"
-                        @change="save()"
-                        type="color"
-                        v-model="settings.gridBackgroundColor"
-                    />
-                </div>
-
-                <div>
-                    <label for="settings.gridLineColor">Grid line color</label>
-                    <input id="settings.gridLineColor"
-                        @change="save()"
-                        type="color"
-                        v-model="settings.gridLineColor"
-                    />
-                </div>
 
                 <div title="Show/hide the cursor location markers at edge of design grid">
                     <input type="checkbox"

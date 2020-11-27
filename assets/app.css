@@ -52,6 +52,19 @@ body {
 
 
 
+details > div,
+details > div + div {
+    margin: 0.5em 1.1em;
+}
+
+details + details {
+    margin: 1em 0;
+}
+
+summary {
+    margin-bottom: 1em;
+}
+
 .controls--sidebar {
 	position: fixed;
 	bottom: unset;
