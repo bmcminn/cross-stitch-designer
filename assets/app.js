@@ -94,6 +94,7 @@ var app = new Vue({
                 rows: 15,
                 gridSizeMin: 10,
                 gridSizeMax: 100,
+                gridTextColor: '#000000',
                 tilesize: 16,
                 tilesizeMin: 8,
                 tilesizeMax: 20,
@@ -107,18 +108,18 @@ var app = new Vue({
                 {
                     title: 'green',
                     color: '#5fd12e',
-                    threadCount: 2,
-                    stitchType: 1,
+                    // threadCount: 2,
+                    // stitchType: 1,
                     editingtitle: false,
-                    tiles: [],
+                    // tiles: [],
                 },
                 {
                     title: 'puple',
                     color: '#8080ff',
-                    threadCount: 2,
-                    stitchType: 1,
+                    // threadCount: 2,
+                    // stitchType: 1,
                     editingtitle: false,
-                    tiles: [],
+                    // tiles: [],
                 },
             ],
         }
@@ -246,6 +247,7 @@ var app = new Vue({
                 if (x < 0 || y < 0) { return }
 
                 sk.strokeWeight(0)
+
                 sk.fill(this.layers[colorIndex].color)
                 sk.square(Number(x) * tilesize, Number(y) * tilesize, tilesize)
 
@@ -296,7 +298,7 @@ var app = new Vue({
                 if (x % 5 === 0) {
                     if (this.settings.showGridNumbers) {
                         sk.strokeWeight(0)
-                        sk.fill(0,0,0)
+                        sk.fill(this.settings.gridTextColor)
                         sk.text(x, x * this.settings.tilesize - tilecenter, tilecenter + 3)
                         sk.text(x, x * this.settings.tilesize - tilecenter, ymax - tilecenter + 3)
                     }
@@ -321,7 +323,7 @@ var app = new Vue({
 
                     if (this.settings.showGridNumbers) {
                         sk.strokeWeight(0)
-                        sk.fill(0,0,0)
+                        sk.fill(this.settings.gridTextColor)
                         sk.text(y, tilecenter, y * this.settings.tilesize - tilecenter + 5)
                         sk.text(y, xmax - tilecenter, y * this.settings.tilesize - tilecenter + 5)
                     }
@@ -357,7 +359,7 @@ var app = new Vue({
         drawCenterMarker(sk) {
             if (!this.settings.showCenterCross) { return }
 
-            sk.stroke(0,0,0)
+            sk.stroke(this.settings.gridTextColor)
             sk.strokeWeight(2)
 
             sk.line(this.gridCenterX, this.gridCenterY - this.gridCrossSize, this.gridCenterX, this.gridCenterY + this.gridCrossSize)
@@ -410,12 +412,10 @@ var app = new Vue({
             this.layers.unshift({
                 title:        `Layer ${this.layers.length}`,
                 color:        randomHex(), // '#5fd12e',
-                threadCount:  2,
-                stitchType:   1,
+                // threadCount:  2,
+                // stitchType:   1,
                 editingtitle: false,
-                tiles: [
-
-                ],
+                // tiles: [],
             })
 
             this.save()
@@ -492,9 +492,15 @@ var app = new Vue({
 
         save() {
 
+            // normalize copyright date
             let design = this.design
 
             design.copyright = dayjs(design.copyright).format('YYYY-MM-DD')
+
+
+            // invert grid text overlay colors
+            this.settings.gridTextColor = getContrastYIQ(this.settings.gridBackgroundColor)
+
 
             let data = {
                 layers:     this.layers,
@@ -792,4 +798,35 @@ function randomItem(list) {
  */
 function randomHex() {
     return '#' + Math.floor(Math.random() * 16777215).toString(16)
+}
+
+
+/**
+ * Gets the contrast yiq.
+ *
+ * @sauce: https://gomakethings.com/dynamically-changing-the-text-color-based-on-background-color-contrast-with-vanilla-js/
+ * @param      {string}   hexcolor  The hexcolor
+ * @return     {boolean}  The contrast yiq.
+ */
+function getContrastYIQ(hexcolor){
+    // If a leading # is provided, remove it
+    if (hexcolor.slice(0, 1) === '#') {
+        hexcolor = hexcolor.slice(1);
+    }
+
+    // If a three-character hexcode, make six-character
+    if (hexcolor.length === 3) {
+        hexcolor = hexcolor.split('').map(function (hex) {
+            return hex + hex;
+        }).join('');
+    }
+
+    // Convert to RGB value
+    var r = parseInt(hexcolor.substr(0,2),16);
+    var g = parseInt(hexcolor.substr(2,2),16);
+    var b = parseInt(hexcolor.substr(4,2),16);
+
+    // Get YIQ ratio
+    var yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+
 }
