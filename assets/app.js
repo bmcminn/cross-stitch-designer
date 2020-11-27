@@ -29,7 +29,6 @@ var app = new Vue({
             gridCenterX: 0,
             gridCenterY: 0,
 
-
             offsetX: 0,
             offsetY: 0,
 
@@ -50,15 +49,25 @@ var app = new Vue({
                 }
             },
 
-            gridData: [
-            ],
+            gridData: [],
+
+            design: {
+                widthInches: 0,
+                heightInches: 0,
+                widthMM: 0,
+                heightMM: 0,
+                owner: '',
+                title: 'New Cross Stitch Design',
+                copyright: new Date(),
+            },
 
             settings: {
                 gridBackgroundColor: '#ffffff',
-                gridColor: '#dfdfdf',
+                gridLineColor: '#dfdfdf',
+                aidaCount: 14,
                 columns: 15,
                 rows: 15,
-                tilesize: 20,
+                tilesize: 16,
                 showCursorMarkers: true,
                 showGridNumbers: true,
                 showCenterCross: true,
@@ -131,7 +140,7 @@ var app = new Vue({
             sk.createCanvas(10,10)
 
 
-            sk.canvas.style.borderColor = this.settings.gridColor
+            sk.canvas.style.borderColor = this.settings.gridLineColor
             console.debug('sketch', sk)
 
             this.adjustGrid(sk)
@@ -208,7 +217,7 @@ var app = new Vue({
             // setup text settings
             sk.fill(0,0,0)
             sk.textAlign(sk.CENTER)
-            sk.stroke(this.settings.gridColor)
+            sk.stroke(this.settings.gridLineColor)
 
 
             // draw vertical grid lines
@@ -299,7 +308,7 @@ var app = new Vue({
             // sk.clear()
 
             let messages = [
-                `Framerate:           ${this.framerate}FPS`,
+                `Framerate:           ${sk.deltaTime}FPS`,
                 `MouseX:              ${sk.mouseX}`,
                 `MouseY:              ${sk.mouseY}`,
                 `X offset:            ${this.offsetX}`,
@@ -367,10 +376,19 @@ var app = new Vue({
             this.settings.rows      = Number(this.settings.rows)
             this.settings.columns   = Number(this.settings.columns)
 
+            // resize canvas accordingly
             sk.resizeCanvas(this.settings.columns * this.settings.tilesize, this.settings.rows * this.settings.tilesize)
 
+            // calc grid center
             this.gridCenterX = (this.settings.columns / 2) * this.settings.tilesize
             this.gridCenterY = (this.settings.rows / 2) * this.settings.tilesize
+
+            // update canvas stats
+            this.design.widthInches     = this.settings.columns / this.settings.aidaCount
+            this.design.heightInches    = this.settings.rows / this.settings.aidaCount
+
+            this.design.widthMM         = this.design.widthInches * 25.4
+            this.design.heightMM        = this.design.heightInches * 25.4
 
             this.save()
         },
@@ -378,10 +396,17 @@ var app = new Vue({
 
         save() {
 
+            let design = this.design
+
+            design.copyright = dayjs(design.copyright).format('YYYY-MM-DD')
+
             let data = {
                 layers:     this.layers,
                 settings:   this.settings,
+                design,
             }
+
+            console.debug('save', design.copyright)
 
             localStorage.setItem('designdata', JSON.stringify(data))
 
@@ -404,6 +429,9 @@ var app = new Vue({
 
             this.layers     = data.layers
             this.settings   = Object.assign({}, this.settings, data.settings)
+
+            data.design.copyright = new Date(data.design.copyright)
+            this.design     = data.design
 
         },
 
@@ -463,6 +491,10 @@ var app = new Vue({
 
 
     mounted() {
+    },
+
+
+    created() {
 
         this.load()
 
@@ -471,8 +503,15 @@ var app = new Vue({
     },
 
 
-    created() {
-    },
+    filters: {
+        round(value, decimals=2) {
+            return Number.parseFloat(value).toFixed(decimals)
+        },
+
+        datetime(datetime, format='YYYY-mm-dd') {
+            return dayjs(datetime).format(format)
+        }
+    }
 })
 
 

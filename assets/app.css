@@ -57,6 +57,7 @@ body {
 	height: 100%;
 	width: var(--sidebar-width);
 	overflow-y: auto;
+    padding: 0.5em;
 }
 .controls--sidebar section {
     margin: 1em 0;

@@ -33,66 +33,162 @@
 		></vue-p5>
 
 		<div class="controls controls--sidebar">
-            <section id="document-setup">
-    			<h3>Document Setup</h3>
+            <section id="design-information">
+    			<h1>{{ design.title }}</h1>
 
-    			<div class="flex">
-    				<label for="document-width">Width</label>
-    				<input type="number"
-    					name="document-width"
-    					v-model="settings.columns"
-    					min="0"
-    					max="80"
-    					@change="adjustGrid()"
+                <div>
+                Count Size: {{ settings.columns }} x {{ settings.rows }}
+                </div>
+
+                <div>
+                Finished Size: {{ design.widthInches|round }}" x {{ design.heightInches|round }}"
+                </div>
+
+                <div>
+                Copyright &copy; {{ design.copyright|datetime('YYYY') }} {{ design.owner }}
+                </div>
+            </section>
+
+
+            <details id="document-configuration">
+                <summary>Document Information</summary>
+    			<div>
+    				<label for="design.title">Design Title</label>
+    				<input type="text"
+                        class="full-width"
+    					id="design.title"
+    					v-model="design.title"
+    					@change="save()"
     				/>
     			</div>
 
+
+                <div>
+                    <label for="design.owner">Owner</label>
+                    <input type="text"
+                        class="full-width"
+                        id="design.owner"
+                        v-model="design.owner"
+                        @change="save()"
+                    />
+                </div>
+
+
+                <div>
+                    <label for="design.copyright">Copyright</label>
+                    <input type="date"
+                        class="full-width"
+                        id="design.copyright"
+                        v-model="design.copyright"
+                        @change="save()"
+                    />
+                </div>
+            </details>
+
+            <details id="document-setup">
+                <summary>Document Setup</summary>
+                <div class="flex">
+                    <label for="settings.columns">Width</label>
+                    <input type="number"
+                        id="settings.columns"
+                        v-model="settings.columns"
+                        min="0"
+                        max="100"
+                        @change="adjustGrid()"
+                    />
+                </div>
+
     			<div class="flex">
-    				<label for="document-height">Height</label>
+    				<label for="settings.rows">Height</label>
     				<input type="number"
-    					name="document-height"
+    					id="settings.rows"
     					v-model="settings.rows"
     					@change="adjustGrid()"
     					min="0"
-    					max="80"
+    					max="100"
     				/>
     			</div>
 
 
-                <h3>Settings</h3>
+                <div class="flex">
+                    <label for="settings.aidaCount">AIDA Count</label>
+                    <input id="settings.aidaCount"
+                        @change="adjustGrid()"
+                        type="number"
+                        min="7"
+                        max="28"
+                        v-model="settings.aidaCount"
+                    />
+                </div>
+            </details>
+
+
+            <details id="ui-settings">
+                <summary>UI Settings</summary>
+
+                <div class="flex">
+                    <label for="settings.tilesize">Zoom</label>
+                    <input id="settings.tilesize"
+                        @change="adjustGrid()"
+                        type="number"
+                        min="6"
+                        max="25"
+                        v-model="settings.tilesize"
+                    />
+                </div>
+
+
+                <div>
+                    <label for="settings.gridBackgroundColor">Background color</label>
+                    <input id="settings.gridBackgroundColor"
+                        @change="save()"
+                        type="color"
+                        v-model="settings.gridBackgroundColor"
+                    />
+                </div>
+
+                <div>
+                    <label for="settings.gridLineColor">Grid line color</label>
+                    <input id="settings.gridLineColor"
+                        @change="save()"
+                        type="color"
+                        v-model="settings.gridLineColor"
+                    />
+                </div>
 
                 <div title="Show/hide the cursor location markers at edge of design grid">
                     <input type="checkbox"
-                        id="setting-showCursorMarkers"
+                        id="settings.showCursorMarkers"
                         v-model="settings.showCursorMarkers"
                     />
-                    <label for="setting-showCursorMarkers">Show cursor markers</label>
+                    <label for="settings.showCursorMarkers">Show cursor markers</label>
                 </div>
 
                 <div title="Show/hide the row and column numbers">
                     <input type="checkbox"
-                        id="setting-showGridNumbers"
+                        id="settings.showGridNumbers"
                         v-model="settings.showGridNumbers"
                     />
-                    <label for="setting-showGridNumbers">Show row/column numbers</label>
+                    <label for="settings.showGridNumbers">Show row/column numbers</label>
                 </div>
 
                 <div title="Show/hide the design center cross">
                     <input type="checkbox"
-                        id="setting-showCenterCross"
+                        id="settings.showCenterCross"
                         v-model="settings.showCenterCross"
                     />
-                    <label for="setting-showCenterCross">Show design center marker</label>
+                    <label for="settings.showCenterCross">Show design center marker</label>
                 </div>
-            </section>
+            </details>
 
-			<section id="layers-panel">
-                <h3>
-    				Layers
-    				<button @click="newLayer">
-    					<small class="fas fa-fw fa-plus"></small>
-    				</button>
-    			</h3>
+
+			<details id="layers-panel" open>
+                <summary>Layers</summary>
+
+
+                <button @click="newLayer">
+                    New layer <small class="fas fa-fw fa-plus"></small>
+                </button>
 
     			<ul class="controls controls--layers">
     				<li
@@ -145,7 +241,7 @@
                         </button>
     				</li>
     			</ul>
-            </section>
+            </details>
 		</div>
 	</main>
 
@@ -154,7 +250,8 @@
 	<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
 	<!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
 	<!-- <script src="https://unpkg.com/lz-string@1.4.4/libs/lz-string.min.js"></script> -->
-	<script src="https://unpkg.com/lzwcompress@0.5.22/lzwCompress.js"></script>
+    <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js"></script>
+	<!-- <script src="https://unpkg.com/lzwcompress@0.5.22/lzwCompress.js"></script> -->
 	<script src="https://unpkg.com/vue"></script>
 	<script src="https://unpkg.com/vue-p5"></script>
 	<script src="assets/app.js"></script>
