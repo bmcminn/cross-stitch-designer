@@ -57,6 +57,33 @@
     					max="80"
     				/>
     			</div>
+
+
+                <h3>Settings</h3>
+
+                <div title="Show/hide the cursor location markers at edge of design grid">
+                    <input type="checkbox"
+                        id="setting-showCursorMarkers"
+                        v-model="settings.showCursorMarkers"
+                    />
+                    <label for="setting-showCursorMarkers">Show cursor markers</label>
+                </div>
+
+                <div title="Show/hide the row and column numbers">
+                    <input type="checkbox"
+                        id="setting-showGridNumbers"
+                        v-model="settings.showGridNumbers"
+                    />
+                    <label for="setting-showGridNumbers">Show row/column numbers</label>
+                </div>
+
+                <div title="Show/hide the design center cross">
+                    <input type="checkbox"
+                        id="setting-showCenterCross"
+                        v-model="settings.showCenterCross"
+                    />
+                    <label for="setting-showCenterCross">Show row/column numbers</label>
+                </div>
             </section>
 
 			<section id="layers-panel">

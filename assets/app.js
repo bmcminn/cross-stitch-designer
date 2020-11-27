@@ -55,7 +55,9 @@ var app = new Vue({
             ],
 
             settings: {
-                showCursorXYMarkers: true,
+                showCursorMarkers: true,
+                showGridNumbers: true,
+                showCenterCross: true,
             },
 
             layers: [
@@ -141,6 +143,7 @@ var app = new Vue({
 
             this.drawCursor(sk)
 
+            this.drawCenterMarker(sk)
 
         },
 
@@ -179,45 +182,42 @@ var app = new Vue({
                 sk.strokeWeight(2)
 
                 sk.rect(x * this.tilesize, y * this.tilesize, this.tilesize, this.tilesize)
-                // console.debug(x, y)
+
 
                 // draw col/row index labels
+                if (this.settings.showGridNumbers) {
+                    let isFirstCell = x === 0 && y === 0
+                    let isXDivByFive = (x + 1) % 5 === 0
+                    let isYDivByFive = (y + 1) % 5 === 0
 
-                // if (x === 0 && y === 0) {
-                //     sk.text(i+1, x, y+10)
-                // }
-
-                let isFirstCell = x === 0 && y === 0
-                let isXDivByFive = (x + 1) % 5 === 0
-                let isYDivByFive = (y + 1) % 5 === 0
-
-                if (isFirstCell || isXDivByFive
-                &&  y === 0) {
-                    sk.fill(0,0,0)
-                    sk.textAlign(sk.CENTER)
-                    sk.text(x+1, (x * this.tilesize) + Math.floor(this.tilesize/2), y+15)
+                    if (isFirstCell || isXDivByFive
+                    &&  y === 0) {
+                        sk.fill(0,0,0)
+                        sk.textAlign(sk.CENTER)
+                        sk.text(x+1, (x * this.tilesize) + Math.floor(this.tilesize/2), y+15)
 
 
-                }
-
-                if (isYDivByFive) {
-
-                    let labelX = Math.floor(this.tilesize/2)
-
-                    if (x === this.columns-1) {
-                        labelX += x * this.tilesize
                     }
 
-                    sk.fill(0,0,0)
-                    sk.text(y+1, labelX, ((y + 1) * this.tilesize) - 5)
-                }
+                    if (isYDivByFive) {
 
-                // if (x === 0
-                // &&  isYDivByFive) {
-                //     sk.fill(0,0,0)
-                //     sk.textAlign(sk.CENTER)
-                //     sk.text(y+1, 50, 50)
-                // }
+                        let labelX = Math.floor(this.tilesize/2)
+
+                        if (x === this.columns-1) {
+                            labelX += x * this.tilesize
+                        }
+
+                        sk.fill(0,0,0)
+                        sk.text(y+1, labelX, ((y + 1) * this.tilesize) - 5)
+                    }
+
+                    // if (x === 0
+                    // &&  isYDivByFive) {
+                    //     sk.fill(0,0,0)
+                    //     sk.textAlign(sk.CENTER)
+                    //     sk.text(y+1, 50, 50)
+                    // }
+                }
 
 
             }
@@ -228,7 +228,7 @@ var app = new Vue({
             let x = Math.floor(sk.mouseX / this.tilesize) * this.tilesize
             let y = Math.floor(sk.mouseY / this.tilesize) * this.tilesize
 
-            if (this.settings.showCursorXYMarkers) {
+            if (this.settings.showCursorMarkers) {
                 sk.fill('rgba(0,0,0,0.15)')
                 sk.strokeWeight(2)
 
@@ -238,11 +238,37 @@ var app = new Vue({
                 sk.square((this.columns - 1) * this.tilesize, y, this.tilesize)
             }
 
-            //
             sk.fill(0,0,0,0)
             sk.stroke(this.layers[this.selectedLayer].color)
             sk.square(x, y, this.tilesize)
         },
+
+
+        drawCenterMarker(sk) {
+            if (!this.settings.showCenterCross) { return }
+
+            sk.stroke(0,0,0)
+            sk.strokeWeight(2)
+
+            let centerX = (this.columns / 2)
+            let centerY = (this.rows / 2)
+
+            centerX = centerX % 1 === 0 ? centerX : centerX + 0.5
+            centerY = centerY % 1 === 0 ? centerY : centerY + 0.5
+
+            centerX *= this.tilesize
+            centerY *= this.tilesize
+
+            centerX -= Math.floor(this.tilesize / 2)
+            centerY -= Math.floor(this.tilesize / 2)
+
+            let crossSize = 5
+
+            sk.line(centerX, centerY - crossSize, centerX, centerY + crossSize)
+            sk.line(centerX - crossSize, centerY, centerX + crossSize, centerY)
+
+        },
+
 
 
         drawDebug(sk) {

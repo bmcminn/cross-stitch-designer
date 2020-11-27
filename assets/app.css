@@ -35,16 +35,19 @@ body {
 	position: fixed;
 }
 
-input {
-	width: 100%;
-}
-
 
 .layer--name label,
 .layer--name input {
 	padding: 0.2em;
 	border: 1px solid transparent;
+
 }
+
+.layer--name input {
+    width: 100%;
+}
+
+
 
 .controls--sidebar {
 	position: fixed;
