@@ -40,7 +40,7 @@
     				<label for="document-width">Width</label>
     				<input type="number"
     					name="document-width"
-    					v-model="columns"
+    					v-model="settings.columns"
     					min="0"
     					max="80"
     					@change="adjustGrid()"
@@ -51,7 +51,7 @@
     				<label for="document-height">Height</label>
     				<input type="number"
     					name="document-height"
-    					v-model="rows"
+    					v-model="settings.rows"
     					@change="adjustGrid()"
     					min="0"
     					max="80"
@@ -82,7 +82,7 @@
                         id="setting-showCenterCross"
                         v-model="settings.showCenterCross"
                     />
-                    <label for="setting-showCenterCross">Show row/column numbers</label>
+                    <label for="setting-showCenterCross">Show design center marker</label>
                 </div>
             </section>
 

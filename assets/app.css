@@ -69,6 +69,12 @@ body {
     overflow: auto;
 }
 
+.waffles canvas {
+    border: 2px solid;
+    margin: 1em;
+
+}
+
 
 .layer-color {
 	width: 12px;
