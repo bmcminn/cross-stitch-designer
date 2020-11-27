@@ -54,6 +54,10 @@ var app = new Vue({
             gridData: [
             ],
 
+            settings: {
+                showCursorXYMarkers: true,
+            },
+
             layers: [
                 {
                     title: 'green',
@@ -160,16 +164,11 @@ var app = new Vue({
 
 
         mousemoved(sk) {
-
-
-
         },
 
 
         drawGrid(sk) {
             // if (this.rows < 1 && this.columns < 1) { return }
-
-            this.tilesize = 20
 
             for (var i = this.gridData.length - 1; i >= 0; i--) {
 
@@ -229,13 +228,15 @@ var app = new Vue({
             let x = Math.floor(sk.mouseX / this.tilesize) * this.tilesize
             let y = Math.floor(sk.mouseY / this.tilesize) * this.tilesize
 
-            sk.fill('rgba(0,0,0,0.15)')
-            sk.strokeWeight(2)
+            if (this.settings.showCursorXYMarkers) {
+                sk.fill('rgba(0,0,0,0.15)')
+                sk.strokeWeight(2)
 
-            sk.square(0, y, this.tilesize)
-            sk.square(x, 0, this.tilesize)
-            sk.square(x, (this.rows - 1) * this.tilesize, this.tilesize)
-            sk.square((this.columns - 1) * this.tilesize, y, this.tilesize)
+                sk.square(0, y, this.tilesize)
+                sk.square(x, 0, this.tilesize)
+                sk.square(x, (this.rows - 1) * this.tilesize, this.tilesize)
+                sk.square((this.columns - 1) * this.tilesize, y, this.tilesize)
+            }
 
             //
             sk.fill(0,0,0,0)
@@ -342,8 +343,6 @@ var app = new Vue({
             this.gridHeight = data.gridHeight
             this.columns    = data.columns
             this.rows       = data.rows
-
-            this.adjustGrid()
         },
 
 
@@ -412,6 +411,7 @@ var app = new Vue({
 
     created() {
         this.load()
+        this.adjustGrid()
     },
 })
 
