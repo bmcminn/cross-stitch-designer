@@ -1,6 +1,6 @@
 :root {
 	--anim-duration: 1s;
-
+    --sidebar-width: 16em;
 }
 
 /*
@@ -52,11 +52,18 @@ input {
 	right: 0;
 	top: 0;
 	height: 100%;
-	width: 16em;
+	width: var(--sidebar-width);
 	overflow-y: auto;
 }
 .controls--sidebar section {
     margin: 1em 0;
+}
+
+
+.waffles {
+    width: calc(100vw - var(--sidebar-width));
+    height: 100vh;
+    overflow: auto;
 }
 
 

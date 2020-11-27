@@ -133,12 +133,18 @@ var app = new Vue({
             sk.clear()
             this.drawGrid(sk)
             this.drawDebug(sk)
+
+
+            this.drawCursor(sk)
+
+
         },
 
 
         windowresized(sk) {
-            sk = sk || this.sketch
-            sk.resizeCanvas(this.columns * this.tilesize, this.rows * this.tilesize)
+
+            sk = sk ? sk : this.sketch
+            sk?.resizeCanvas(this.columns * this.tilesize, this.rows * this.tilesize)
             // sk.resizeCanvas(window.innerWidth - this.margin, window.innerHeight - this.margin)
             // this.recalculateTilesize()
         },
@@ -153,20 +159,88 @@ var app = new Vue({
         },
 
 
+        mousemoved(sk) {
+
+
+
+        },
+
+
         drawGrid(sk) {
             // if (this.rows < 1 && this.columns < 1) { return }
 
             this.tilesize = 20
 
             for (var i = this.gridData.length - 1; i >= 0; i--) {
+
                 let [x,y] = indexToXY(i, this.columns, this.rows)
 
-                sk.stroke(255, 204, 0)
+                sk.fill(0,0,0,0)
+                sk.stroke('#efefef')
                 sk.strokeWeight(2)
 
                 sk.rect(x * this.tilesize, y * this.tilesize, this.tilesize, this.tilesize)
                 // console.debug(x, y)
+
+                // draw col/row index labels
+
+                // if (x === 0 && y === 0) {
+                //     sk.text(i+1, x, y+10)
+                // }
+
+                let isFirstCell = x === 0 && y === 0
+                let isXDivByFive = (x + 1) % 5 === 0
+                let isYDivByFive = (y + 1) % 5 === 0
+
+                if (isFirstCell || isXDivByFive
+                &&  y === 0) {
+                    sk.fill(0,0,0)
+                    sk.textAlign(sk.CENTER)
+                    sk.text(x+1, (x * this.tilesize) + Math.floor(this.tilesize/2), y+15)
+
+
+                }
+
+                if (isYDivByFive) {
+
+                    let labelX = Math.floor(this.tilesize/2)
+
+                    if (x === this.columns-1) {
+                        labelX += x * this.tilesize
+                    }
+
+                    sk.fill(0,0,0)
+                    sk.text(y+1, labelX, ((y + 1) * this.tilesize) - 5)
+                }
+
+                // if (x === 0
+                // &&  isYDivByFive) {
+                //     sk.fill(0,0,0)
+                //     sk.textAlign(sk.CENTER)
+                //     sk.text(y+1, 50, 50)
+                // }
+
+
             }
+        },
+
+
+        drawCursor(sk) {
+            let x = Math.floor(sk.mouseX / this.tilesize) * this.tilesize
+            let y = Math.floor(sk.mouseY / this.tilesize) * this.tilesize
+
+            sk.fill('rgba(0,0,0,0.15)')
+            sk.strokeWeight(2)
+
+            sk.square(0, y, this.tilesize)
+            sk.square(x, 0, this.tilesize)
+            sk.square(x, (this.rows - 1) * this.tilesize, this.tilesize)
+            sk.square((this.columns - 1) * this.tilesize, y, this.tilesize)
+
+            //
+            sk.fill(0,0,0,0)
+            sk.stroke(this.layers[this.selectedLayer].color)
+            sk.square(x, y, this.tilesize)
         },
 
 

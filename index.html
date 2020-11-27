@@ -28,6 +28,7 @@
 			@setup="setup"
 			@draw="draw"
 			@keypressed="keypressed"
+            @mousemoved="mousemoved"
 			@windowresized="windowresized"
 		></vue-p5>
 
@@ -41,7 +42,7 @@
     					name="document-width"
     					v-model="columns"
     					min="0"
-    					max="40"
+    					max="80"
     					@change="adjustGrid()"
     				/>
     			</div>
@@ -53,7 +54,7 @@
     					v-model="rows"
     					@change="adjustGrid()"
     					min="0"
-    					max="40"
+    					max="80"
     				/>
     			</div>
             </section>
