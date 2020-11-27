@@ -7,6 +7,11 @@ var app = new Vue({
     data() {
         return {
 
+            app: {
+                name: 'Cross Stitch Designer',
+                version: '0.13 alpha',
+            },
+
             sketch: null,
 
             DEBUG_MODE: false,
@@ -141,7 +146,6 @@ var app = new Vue({
 
 
             sk.canvas.style.borderColor = this.settings.gridLineColor
-            console.debug('sketch', sk)
 
             this.adjustGrid(sk)
 
@@ -406,8 +410,6 @@ var app = new Vue({
                 design,
             }
 
-            console.debug('save', design.copyright)
-
             localStorage.setItem('designdata', JSON.stringify(data))
 
             // this.compressData(data)
@@ -424,8 +426,6 @@ var app = new Vue({
             if (!data) { return }
 
             data = JSON.parse(data)
-
-            console.debug('this.settings', data.settings)
 
             this.layers     = data.layers
             this.settings   = Object.assign({}, this.settings, data.settings)
@@ -469,7 +469,6 @@ var app = new Vue({
 
         setTool(tool) {
 
-            console.debug('setTool', tool)
         },
 
 
@@ -509,6 +508,7 @@ var app = new Vue({
         },
 
         datetime(datetime, format='YYYY-mm-dd') {
+            datetime = datetime ? datetime : new Date()
             return dayjs(datetime).format(format)
         }
     }

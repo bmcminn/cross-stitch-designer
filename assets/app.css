@@ -1,6 +1,6 @@
 :root {
 	--anim-duration: 1s;
-    --sidebar-width: 16em;
+    --sidebar-width: 18em;
 }
 
 /*
@@ -20,7 +20,10 @@ body {
 }
 
 
+.text-center { text-align: center; }
 
+.mt-3 { margin-top: 3em; }
+.my-2 { margin-top: 2em; margin-bottom: 2em; }
 
 .flex { display: flex; }
 .flex-row { flex-direction: row; }

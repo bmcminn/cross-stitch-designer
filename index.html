@@ -6,7 +6,8 @@
 	<meta name="description" content="My official cross stitch design app, made with love <3 and built with P5.js">
 	<meta name="author" content="Brandtley McMinn <https://github.com/bmcminn/cross-stitch-designer>">
 	<meta name="viewport" content="width=device-width">
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" />
+	<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" /> -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/solid.min.css" />
 	<link rel="stylesheet" href="assets/reset.css">
 	<link rel="stylesheet" href="assets/app.css">
 	<style type="text/css">
@@ -242,6 +243,16 @@
     				</li>
     			</ul>
             </details>
+
+            <hr class="my-2">
+
+            <p class="text-center">
+                {{ app.name }} v{{ app.version }}<br>
+                &copy; {{ null|datetime('YYYY') }} <a href="https://github.com/bmcminn">bmcminn</a><br>
+                <a href="https://github.com/bmcminn/cross-stitch-designer">Github</a> |
+                <a href="https://github.com/bmcminn/cross-stitch-designer/blob/master/README.md">Docs</a> |
+                <a href="https://github.com/bmcminn/cross-stitch-designer/issues">Issues</a>
+            </p>
 		</div>
 	</main>
 
@@ -252,7 +263,7 @@
 	<!-- <script src="https://unpkg.com/lz-string@1.4.4/libs/lz-string.min.js"></script> -->
     <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js"></script>
 	<!-- <script src="https://unpkg.com/lzwcompress@0.5.22/lzwCompress.js"></script> -->
-	<script src="https://unpkg.com/vue"></script>
+	<script src="https://unpkg.com/vue@2.6.12/dist/vue.min.js"></script>
 	<script src="https://unpkg.com/vue-p5"></script>
 	<script src="assets/app.js"></script>
 
