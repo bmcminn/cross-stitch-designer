@@ -97,6 +97,7 @@ var app = new Vue({
                 tilesize: 16,
                 tilesizeMin: 8,
                 tilesizeMax: 20,
+                selectedLayer: 0,
                 showCursorMarkers: true,
                 showGridNumbers: true,
                 showCenterCross: true,
@@ -193,11 +194,9 @@ var app = new Vue({
             this.drawGrid(sk)
             this.drawDebug(sk)
 
-
             this.drawCursor(sk)
 
             this.drawCenterMarker(sk)
-
         },
 
 
@@ -237,11 +236,12 @@ var app = new Vue({
 
 
             if (sk.mouseButton === 'left') {
-                this.tiles[coord] = {
-                    x,
-                    y,
-                    color: this.selectedLayer,
-                }
+                this.tiles[coord] = [x, y, this.settings.selectedLayer]
+                // this.tiles[coord] = {
+                //     x,
+                //     y,
+                //     color: this.settings.selectedLayer,
+                // }
             }
 
 
@@ -261,23 +261,21 @@ var app = new Vue({
 
         drawTiles(sk) {
 
-            // if (!this.tiles) { return }
+            if (!this.tiles) { return }
 
-            // let tiles       = this.tiles
-            // let layers      = this.layers
-            // let tilesize    = this.settings.tilesize
+            let tilesize = this.settings.tilesize
 
             Object.keys(this.tiles).forEach((key, el) => {
 
                 if (!this.tiles.hasOwnProperty(key)) { return }
 
-                let tile = this.tiles[key]
+                let [x, y, colorIndex] = this.tiles[key]
 
-                if (tile.x < 0 || tile.y < 0) { return }
+                if (x < 0 || y < 0) { return }
 
                 sk.strokeWeight(0)
-                sk.fill(this.layers[tile.color].color)
-                sk.square(Number(tile.x) * this.settings.tilesize, Number(tile.y) * this.settings.tilesize, this.settings.tilesize)
+                sk.fill(this.layers[colorIndex].color)
+                sk.square(Number(x) * tilesize, Number(y) * tilesize, tilesize)
 
             }, this)
 
@@ -379,7 +377,7 @@ var app = new Vue({
             }
 
             sk.fill(0,0,0,0)
-            sk.stroke(this.layers[this.selectedLayer].color)
+            sk.stroke(this.layers[this.settings.selectedLayer].color)
             sk.square(x, y, this.settings.tilesize)
         },
 
@@ -459,13 +457,14 @@ var app = new Vue({
 
 
         selectLayer(index) {
-            this.selectedLayer = index
+            this.settings.selectedLayer = index
+            this.save()
         },
 
 
         nextLayer(dir) {
-            this.selectedLayer += dir
-            this.selectedLayer = this.sketch.constrain(this.selectedLayer, 0, this.layers.length -1)
+            this.settings.selectedLayer += dir
+            this.settings.selectedLayer = this.sketch.constrain(this.settings.selectedLayer, 0, this.layers.length -1)
         },
 
 
