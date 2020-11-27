@@ -30,7 +30,9 @@
 			@draw="draw"
 			@keypressed="keypressed"
             @mousemoved="mousemoved"
+            @mousepressed="mousepressed"
 			@windowresized="windowresized"
+            :style="{ 'background-color': settings.gridBackgroundColor }"
 		></vue-p5>
 
 		<div class="controls controls--sidebar">
@@ -93,8 +95,8 @@
                     <input type="number"
                         id="settings.columns"
                         v-model="settings.columns"
-                        min="0"
-                        max="100"
+                        :min="settings.gridSizeMin"
+                        :max="settings.gridSizeMax"
                         @change="adjustGrid()"
                     />
                 </div>
@@ -105,8 +107,8 @@
     					id="settings.rows"
     					v-model="settings.rows"
     					@change="adjustGrid()"
-    					min="0"
-    					max="100"
+    					:min="settings.gridSizeMin"
+    					:max="settings.gridSizeMax"
     				/>
     			</div>
 
@@ -116,8 +118,8 @@
                     <input id="settings.aidaCount"
                         @change="adjustGrid()"
                         type="number"
-                        min="7"
-                        max="28"
+                        :min="settings.aidaCountMin"
+                        :max="settings.aidaCountMax"
                         v-model="settings.aidaCount"
                     />
                 </div>
@@ -153,8 +155,8 @@
                     <input id="settings.tilesize"
                         @change="adjustGrid()"
                         type="number"
-                        min="6"
-                        max="25"
+                        :min="settings.tilesizeMin"
+                        :max="settings.tilesizeMax"
                         v-model="settings.tilesize"
                     />
                 </div>
@@ -192,6 +194,10 @@
 
                 <button @click="newLayer">
                     New layer <small class="fas fa-fw fa-plus"></small>
+                </button>
+
+                <button @click="clearDesign">
+                    Clear design <small class="fas fa-fw fa-trash"></small>
                 </button>
 
     			<ul class="controls controls--layers">

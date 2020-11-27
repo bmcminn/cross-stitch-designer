@@ -9,7 +9,25 @@ var app = new Vue({
 
             app: {
                 name: 'Cross Stitch Designer',
-                version: '0.13 alpha',
+                version: '0.14 Alpha',
+                author: {
+                    name: 'bmcminn',
+                    link: 'https://github.com/bmcminn',
+                },
+                links: [
+                    {
+                        title: 'Github',
+                        link: 'https://github.com/bmcminn/cross-stitch-designer',
+                    },
+                    {
+                        title: 'Github',
+                        link: 'https://github.com/bmcminn/cross-stitch-designer#instructions',
+                    },
+                    {
+                        title: 'Issues',
+                        link: 'https://github.com/bmcminn/cross-stitch-designer/issues',
+                    },
+                ]
             },
 
             sketch: null,
@@ -54,7 +72,7 @@ var app = new Vue({
                 }
             },
 
-            gridData: [],
+            tiles: {},
 
             design: {
                 widthInches: 0,
@@ -70,9 +88,15 @@ var app = new Vue({
                 gridBackgroundColor: '#ffffff',
                 gridLineColor: '#dfdfdf',
                 aidaCount: 14,
+                aidaCountMin: 7,
+                aidaCountMax: 28,
                 columns: 15,
                 rows: 15,
+                gridSizeMin: 10,
+                gridSizeMax: 100,
                 tilesize: 16,
+                tilesizeMin: 8,
+                tilesizeMax: 20,
                 showCursorMarkers: true,
                 showGridNumbers: true,
                 showCenterCross: true,
@@ -144,7 +168,6 @@ var app = new Vue({
             this.sketch = sk
             sk.createCanvas(10,10)
 
-
             sk.canvas.style.borderColor = this.settings.gridLineColor
 
             this.adjustGrid(sk)
@@ -152,12 +175,21 @@ var app = new Vue({
             sk.background(255,128,0)
             sk.frameRate(this.framerate)
 
+            // document.addEventListener('contextmenu', event => {
+            //     if (event.target.classList.contains('p5Canvas')) {
+            //         event.preventDefault()
+            //         event.stopPropagation()
+            //     }
+            // });
+
             // setupEventBindings(this)
         },
 
 
         draw(sk) {
             sk.clear()
+            this.drawTiles(sk)
+
             this.drawGrid(sk)
             this.drawDebug(sk)
 
@@ -173,36 +205,95 @@ var app = new Vue({
             // sk = sk ? sk : this.sketch
             // sk?.resizeCanvas(this.settings.columns * this.settings.tilesize, this.settings.rows * this.settings.tilesize)
 
-
-            // let centerX = (this.settings.columns / 2)
-            // let centerY = (this.settings.rows / 2)
-
-            // centerX = centerX % 1 === 0 ? centerX : centerX + 0.5
-            // centerY = centerY % 1 === 0 ? centerY : centerY + 0.5
-
-            // centerX *= this.settings.tilesize
-            // centerY *= this.settings.tilesize
-
-            // centerX -= Math.floor(this.settings.tilesize / 2)
-            // centerY -= Math.floor(this.settings.tilesize / 2)
-
-
             // sk.resizeCanvas(window.innerWidth - this.margin, window.innerHeight - this.margin)
             // this.recalculateTilesize()
         },
 
 
         keypressed(sk) {
+
+            console.debug('keypressed', sk.key)
+
             switch(sk.key) {
-                case 'F3':
-                    this.DEBUG_MODE = !this.DEBUG_MODE
-                    break
+                case 'F3':          this.DEBUG_MODE = !this.DEBUG_MODE; break
+                case ']':           this.nextLayer(1); break
+                case '[':           this.nextLayer(-1); break
+                case '+':           this.zoomGrid(1); break
+                case '-':           this.zoomGrid(-1); break
+                case 'ArrowLeft':   this.nudgeDesign(-1, 0); break
+                case 'ArrowUp':     this.nudgeDesign(0, -1); break
+                case 'ArrowRight':  this.nudgeDesign(1, 0); break
+                case 'ArrowDown':   this.nudgeDesign(0, 1); break
             }
+        },
+
+
+        mousepressed(sk) {
+
+            let x = Math.floor(sk.mouseX / this.settings.tilesize)
+            let y = Math.floor(sk.mouseY / this.settings.tilesize)
+
+            let coord = `${x},${y}`
+
+
+            if (sk.mouseButton === 'left') {
+                this.tiles[coord] = {
+                    x,
+                    y,
+                    color: this.selectedLayer,
+                }
+            }
+
+
+            if (sk.key === 'Shift' && sk.mouseButton === 'left') {
+                if (this.tiles[coord]) {
+                    delete this.tiles[coord]
+                }
+            }
+
+            this.save()
         },
 
 
         mousemoved(sk) {
         },
+
+
+        drawTiles(sk) {
+
+            // if (!this.tiles) { return }
+
+            // let tiles       = this.tiles
+            // let layers      = this.layers
+            // let tilesize    = this.settings.tilesize
+
+            Object.keys(this.tiles).forEach((key, el) => {
+
+                if (!this.tiles.hasOwnProperty(key)) { return }
+
+                let tile = this.tiles[key]
+
+                if (tile.x < 0 || tile.y < 0) { return }
+
+                sk.strokeWeight(0)
+                sk.fill(this.layers[tile.color].color)
+                sk.square(Number(tile.x) * this.settings.tilesize, Number(tile.y) * this.settings.tilesize, this.settings.tilesize)
+
+            }, this)
+
+
+            // keys.foreach
+            // this.tiles.forEach((tile, index) => {
+            //     tile = tile[1]
+
+            //     sk.strokeWeight(0)
+            //     sk.fill(this.layers[tile.color].color)
+
+            //     sk.square(tile.x * this.settings.tilesize, tile.y * this.settings.tilesize, this.settings.tilesize)
+            // })
+
+        },
+
 
 
         drawGrid(sk) {
@@ -213,13 +304,13 @@ var app = new Vue({
 
             let tilecenter = Math.floor(this.settings.tilesize / 2)
 
-            sk.fill(this.settings.gridBackgroundColor)
-            sk.noStroke()
-            sk.rect(0, 0, xmax, ymax)
+            // sk.fill(this.settings.gridBackgroundColor)
+            // sk.noStroke()
+            // sk.rect(0, 0, xmax, ymax)
 
 
             // setup text settings
-            sk.fill(0,0,0)
+            sk.fill(0,0,0,0)
             sk.textAlign(sk.CENTER)
             sk.stroke(this.settings.gridLineColor)
 
@@ -372,6 +463,36 @@ var app = new Vue({
         },
 
 
+        nextLayer(dir) {
+            this.selectedLayer += dir
+            this.selectedLayer = this.sketch.constrain(this.selectedLayer, 0, this.layers.length -1)
+        },
+
+
+        zoomGrid(zoom) {
+            this.settings.tilesize += zoom
+
+            this.settings.tilesize = this.sketch.constrain(this.settings.tilesize, this.settings.tilesizeMin, this.settings.tilesizeMax)
+            console.debug('zoomGrid', this.settings.tilesize)
+
+            this.adjustGrid()
+        },
+
+
+        nudgeDesign(x, y) {
+            console.debug('nudgeDesign', x, y)
+        },
+
+
+        clearDesign() {
+            let ans = confirm('You are about to delete your design and start over. Do you wish to continue?')
+
+            if (ans) {
+                this.tiles = {}
+            }
+        },
+
+
         adjustGrid(sk) {
 
             sk = sk ? sk : this.sketch
@@ -407,6 +528,7 @@ var app = new Vue({
             let data = {
                 layers:     this.layers,
                 settings:   this.settings,
+                tiles:      this.tiles,
                 design,
             }
 
@@ -428,6 +550,7 @@ var app = new Vue({
             data = JSON.parse(data)
 
             this.layers     = data.layers
+            this.tiles      = data.tiles
             this.settings   = Object.assign({}, this.settings, data.settings)
 
             data.design.copyright = new Date(data.design.copyright)
