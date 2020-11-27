@@ -110,21 +110,7 @@ var app = new Vue({
                     threadCount: 2,
                     stitchType: 1,
                     editingtitle: false,
-                    isSelected: false,
-                    tiles: [
-
-                    ],
-                },
-                {
-                    title: 'pink',
-                    color: '#ff80ff',
-                    threadCount: 2,
-                    stitchType: 1,
-                    editingtitle: false,
-                    isSelected: false,
-                    tiles: [
-
-                    ],
+                    tiles: [],
                 },
                 {
                     title: 'puple',
@@ -132,21 +118,7 @@ var app = new Vue({
                     threadCount: 2,
                     stitchType: 1,
                     editingtitle: false,
-                    isSelected: false,
-                    tiles: [
-
-                    ],
-                },
-                {
-                    title: 'orange',
-                    color: '#ff9900',
-                    threadCount: 2,
-                    stitchType: 1,
-                    editingtitle: false,
-                    isSelected: false,
-                    tiles: [
-
-                    ],
+                    tiles: [],
                 },
             ],
         }
@@ -168,13 +140,11 @@ var app = new Vue({
 
             this.sketch = sk
             sk.createCanvas(10,10)
+            sk.frameRate(this.framerate)
 
             sk.canvas.style.borderColor = this.settings.gridLineColor
 
             this.adjustGrid(sk)
-
-            sk.background(255,128,0)
-            sk.frameRate(this.framerate)
 
             // document.addEventListener('contextmenu', event => {
             //     if (event.target.classList.contains('p5Canvas')) {
@@ -189,6 +159,8 @@ var app = new Vue({
 
         draw(sk) {
             sk.clear()
+            sk.background(this.settings.gridBackgroundColor)
+
             this.drawTiles(sk)
 
             this.drawGrid(sk)
