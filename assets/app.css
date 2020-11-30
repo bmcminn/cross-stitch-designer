@@ -1,6 +1,10 @@
 :root {
 	--anim-duration: 1s;
     --sidebar-width: 18em;
+
+
+    --button-border-color--selected: #5baaff;
+    --button-border-color: #5baaff;
 }
 
 /*
@@ -34,6 +38,7 @@ body {
 
 
 
+
 .controls {
 	position: fixed;
 }
@@ -50,6 +55,27 @@ body {
     width: 100%;
 }
 
+
+.tools button {
+    font-size: 1.25em;
+    padding: 0.2em;
+    line-height: 1.25em;
+}
+
+button {
+    appearance: none;
+    border: 1px solid var(--button-border-color--selected);
+}
+
+button[selected] {
+    background-color: var(--button-border-color--selected);
+    color: #fff;
+}
+
+
+button:hover {
+    cursor: pointer;
+}
 
 
 details > div,

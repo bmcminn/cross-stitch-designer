@@ -17,11 +17,12 @@ A web app for designing simple cross stitch patterns and sharing them with your 
 
 ### Hotkeys
 
-- `left mouse click` - paint a cell with the selected layer
-- `shift` - toggle `tile delete` function, use `left mouse click` to delete colors in grid
-- `[` and `]` - select the next/previous layer color to design with
-- `+` - zoom in the design
-- `-` - zoom out the design
+- <kbd>b</kbd> - enable the Brush tool
+- <kbd>e</kbd> - enable the Eraser tool
+- <kbd>i</kbd> - enable the Eyedropper tool
+- <kbd>[</kbd> and <kbd>]</kbd> - toggle between the next/previous layer color
+- <kbd>+</kbd> - zoom in the design
+- <kbd>-</kbd> - zoom out the design
 
 
 #### Coming soon
@@ -88,3 +89,15 @@ Currently working on a URL based design sharing strategy, but for now if you wou
 - `day.js` - https://day.js.org/
 - `lz-string` - https://github.com/pieroxy/lz-string/
 - Fontawesome `v5.1` - https://fontawesome.com/icons?d=gallery&s=solid&m=free
+
+
+
+## TODO:
+
+[x] Tools: Brush - implement a tool that allows you to add stitches to the design
+[x] Tools: Eraser - implement a tool that allows you to delete cells
+[ ] Tools: Measure - implement a ruler that allows you to measure how many stitches up/down/across
+[ ] Tools: Eyedropper - implement an eyedropper that samples the stitch in question and applies that color to your clipboard/selects the appropriate layer
+[ ] Tools: Pen - implement a pen tool that allows you to draw lines of stitches from point A to point B
+[ ] Tools: Select - implement a tool that allows you to draw a rectangle around a set of stitches and provides controls for you to nudge/relocate said stitches
+[ ] Tools: Fill - implement a tool that allows you to fill a series of adjacent stitches with the selected layer color

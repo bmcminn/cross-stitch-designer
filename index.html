@@ -34,12 +34,14 @@
 			@windowresized="windowresized"
 		></vue-p5>
 
+
+
 		<div class="controls controls--sidebar">
             <section id="design-information">
     			<h1>{{ design.title }}</h1>
 
                 <div>
-                Count Size: {{ settings.columns }} x {{ settings.rows }}
+                Count Size: {{ settings.width }} x {{ settings.height }}
                 </div>
 
                 <div>
@@ -90,10 +92,10 @@
             <details id="document-setup">
                 <summary>Document Setup</summary>
                 <div class="flex">
-                    <label for="settings.columns">Width</label>
+                    <label for="settings.width">Width</label>
                     <input type="number"
-                        id="settings.columns"
-                        v-model="settings.columns"
+                        id="settings.width"
+                        v-model="settings.width"
                         :min="settings.gridSizeMin"
                         :max="settings.gridSizeMax"
                         @change="adjustGrid()"
@@ -101,10 +103,10 @@
                 </div>
 
     			<div class="flex">
-    				<label for="settings.rows">Height</label>
+    				<label for="settings.height">Height</label>
     				<input type="number"
-    					id="settings.rows"
-    					v-model="settings.rows"
+    					id="settings.height"
+    					v-model="settings.height"
     					@change="adjustGrid()"
     					:min="settings.gridSizeMin"
     					:max="settings.gridSizeMax"
@@ -142,7 +144,6 @@
                         v-model="settings.gridLineColor"
                     />
                 </div>
-
             </details>
 
 
@@ -187,8 +188,23 @@
             </details>
 
 
-			<details id="layers-panel" open>
-                <summary>Layers</summary>
+            <div class="tools">
+
+                <button v-for="tool in tools"
+                    v-if="tool.enabled"
+                    :key="tool.name"
+                    @click="selectedTool = tool.name"
+                    :title="`${tool.name}` + (tool.command ? ` (${tool.command})` : '')"
+                    :selected="selectedTool === tool.name"
+                >
+                    <i :class="[ 'fas', tool.icon, 'fa-fw' ]"></i>
+                    <span class="sr-only">{{ tool.name }}</span>
+                </button>
+            </div>
+
+
+			<div id="layers-panel">
+                <h3>Layers</h3>
 
 
                 <button @click="newLayer">
@@ -253,7 +269,7 @@
                         </button>
     				</li>
     			</ul>
-            </details>
+            </div>
 
             <hr class="my-2">
 

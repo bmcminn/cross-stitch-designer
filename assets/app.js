@@ -1,6 +1,15 @@
 'use strict';
 
 
+const TOOL_BRUSH        = 'Brush'
+const TOOL_ERASER       = 'Eraser'
+const TOOL_EYEDROPPER   = 'Eyedropper'
+const TOOL_FILL         = 'Fill'
+const TOOL_PEN          = 'Pen'
+const TOOL_RULER        = 'Ruler'
+const TOOL_SELECT       = 'Select'
+
+
 
 var app = new Vue({
     el: '#app',
@@ -59,7 +68,7 @@ var app = new Vue({
             prevOffsetY: 0,
 
             margin: 0,
-            framerate: 60,
+            framerate: 20,
             isScrolling: false,
             selectedLayer: 0,
 
@@ -74,6 +83,54 @@ var app = new Vue({
 
             tiles: {},
 
+
+            selectedTool: null,
+
+            tools: [
+                {
+                    name: TOOL_RULER,
+                    icon: 'fa-ruler',
+                    command: 'r',
+                },
+                {
+                    name: TOOL_ERASER,
+                    icon: 'fa-eraser',
+                    command: 'e',
+                    enabled: true,
+                },
+                {
+                    name: TOOL_BRUSH,
+                    icon: 'fa-paint-brush',
+                    command: 'b',
+                    enabled: true,
+                },
+                {
+                    name: TOOL_PEN,
+                    icon: 'fa-pen-nib',
+                    command: 'p',
+                },
+                {
+                    name: TOOL_FILL,
+                    icon: 'fa-fill-drip',
+                    command: 'f',
+                },
+                {
+                    name: TOOL_EYEDROPPER,
+                    icon: 'fa-eye-dropper',
+                    command: 'i',
+                    enabled: true,
+                },
+                {
+                    name: TOOL_SELECT,
+                    icon: 'fa-crop-alt',
+                    command: 'm',
+                },
+            ],
+
+
+            aidaCounts: [ 7, 10, 11, 12, 14, 16, 18, 22, 28 ],
+
+
             design: {
                 widthInches: 0,
                 heightInches: 0,
@@ -84,14 +141,15 @@ var app = new Vue({
                 copyright: new Date(),
             },
 
+
             settings: {
                 gridBackgroundColor: '#ffffff',
                 gridLineColor: '#dfdfdf',
                 aidaCount: 14,
                 aidaCountMin: 7,
                 aidaCountMax: 28,
-                columns: 15,
-                rows: 15,
+                width: 15,
+                height: 15,
                 gridSizeMin: 10,
                 gridSizeMax: 100,
                 gridTextColor: '#000000',
@@ -103,6 +161,7 @@ var app = new Vue({
                 showGridNumbers: true,
                 showCenterCross: true,
             },
+
 
             layers: [
                 {
@@ -159,7 +218,7 @@ var app = new Vue({
 
 
         draw(sk) {
-            sk.clear()
+            // sk.clear()
             sk.background(this.settings.gridBackgroundColor)
 
             this.drawTiles(sk)
@@ -175,7 +234,7 @@ var app = new Vue({
 
         windowresized(sk) {
             // sk = sk ? sk : this.sketch
-            // sk?.resizeCanvas(this.settings.columns * this.settings.tilesize, this.settings.rows * this.settings.tilesize)
+            // sk?.resizeCanvas(this.settings.width * this.settings.tilesize, this.settings.height * this.settings.tilesize)
 
             // sk.resizeCanvas(window.innerWidth - this.margin, window.innerHeight - this.margin)
             // this.recalculateTilesize()
@@ -184,19 +243,45 @@ var app = new Vue({
 
         keypressed(sk) {
 
-            console.debug('keypressed', sk.key)
+            if (sk.isComposing || sk.keyCode === 229) {
+                return
+            }
 
-            switch(sk.key) {
+            let key = []
+
+            sk.keyIsDown(sk.CONTROL)   ? key.push('ctrl') : null
+            sk.keyIsDown(sk.SHIFT)  ? key.push('shift') : null
+            sk.keyIsDown(sk.ALT)    ? key.push('alt') : null
+
+            key.push(sk.key)
+
+            key = key.join('+')
+
+            console.debug('keydown event', sk, key)
+
+
+            // if (ACTIONS[key]) { ACTIONS[key]() }
+
+
+            switch(key) {
                 case 'F3':          this.DEBUG_MODE = !this.DEBUG_MODE; break
-                case ']':           this.nextLayer(1); break
-                case '[':           this.nextLayer(-1); break
+                case 'alt+]':       this.nextLayer(1); break
+                case 'alt+[':       this.nextLayer(-1); break
+
+                // TODO: integrate sk.save(c, filename) to export design image
+                // case 'ctrl+e':          this.export()
                 case '+':           this.zoomGrid(1); break
                 case '-':           this.zoomGrid(-1); break
-                case 'ArrowLeft':   this.nudgeDesign(-1, 0); break
-                case 'ArrowUp':     this.nudgeDesign(0, -1); break
-                case 'ArrowRight':  this.nudgeDesign(1, 0); break
-                case 'ArrowDown':   this.nudgeDesign(0, 1); break
+                // case 'ArrowLeft':   this.nudgeDesign(-1, 0); break
+                // case 'ArrowUp':     this.nudgeDesign(0, -1); break
+                // case 'ArrowRight':  this.nudgeDesign(1, 0); break
+                // case 'ArrowDown':   this.nudgeDesign(0, 1); break
             }
+
+            let tool = this.tools.find(el => sk.key === el.command.trim() ? el : null)
+
+            if (tool) { this.selectedTool = tool.name }
+
         },
 
 
@@ -207,8 +292,9 @@ var app = new Vue({
 
             let coord = `${x},${y}`
 
+            let LEFT_CLICK = sk.mouseButton === 'left'
 
-            if (sk.mouseButton === 'left') {
+            if (this.selectedTool === TOOL_BRUSH && LEFT_CLICK) {
                 this.tiles[coord] = [x, y, this.settings.selectedLayer]
                 // this.tiles[coord] = {
                 //     x,
@@ -218,9 +304,20 @@ var app = new Vue({
             }
 
 
-            if (sk.key === 'Shift' && sk.mouseButton === 'left') {
+            if (this.selectedTool === TOOL_ERASER && LEFT_CLICK) {
                 if (this.tiles[coord]) {
                     delete this.tiles[coord]
+                }
+            }
+
+
+            if (this.selectedTool === TOOL_EYEDROPPER && LEFT_CLICK) {
+                // let index = xyToIndex(x, y, this.settings.width, this.settings.height)
+                let tile = this.tiles[coord]
+
+                if (tile) {
+                    this.settings.selectedLayer = tile[2]
+                    console.debug('eydropper event', this.settings.selectedLayer)
                 }
             }
 
@@ -270,9 +367,8 @@ var app = new Vue({
 
         drawGrid(sk) {
 
-
-            let xmax = this.settings.columns * this.settings.tilesize
-            let ymax = this.settings.rows * this.settings.tilesize
+            let xmax = this.settings.width * this.settings.tilesize
+            let ymax = this.settings.height * this.settings.tilesize
 
             let tilecenter = Math.floor(this.settings.tilesize / 2)
 
@@ -288,9 +384,9 @@ var app = new Vue({
 
 
             // draw vertical grid lines
-            for (let x = this.settings.columns; x >= 0; x--) {
+            for (let x = this.settings.width; x >= 0; x--) {
 
-                if (x === this.settings.columns) { continue }
+                if (x === this.settings.width) { continue }
                 if (x === 0) { continue }
 
                 sk.strokeWeight(1)
@@ -298,6 +394,7 @@ var app = new Vue({
                 if (x % 5 === 0) {
                     if (this.settings.showGridNumbers) {
                         sk.strokeWeight(0)
+                        // console.debug('settings.gridTextColor', this.settings.gridTextColor)
                         sk.fill(this.settings.gridTextColor)
                         sk.text(x, x * this.settings.tilesize - tilecenter, tilecenter + 3)
                         sk.text(x, x * this.settings.tilesize - tilecenter, ymax - tilecenter + 3)
@@ -311,12 +408,12 @@ var app = new Vue({
 
 
             // draw horizontal grid lines
-            for (let y = this.settings.rows; y >= 0; y--) {
+            for (let y = this.settings.height; y >= 0; y--) {
 
-                if (y === this.settings.rows) { continue }
+                if (y === this.settings.height) { continue }
                 if (y === 0) { continue }
 
-                sk.strokeWeight(1)
+                sk.strokeWeight(0.5)
                 sk.textAlign(sk.CENTER)
 
                 if (y % 5 === 0) {
@@ -333,6 +430,21 @@ var app = new Vue({
 
                 sk.line(0, y * this.settings.tilesize, xmax, y * this.settings.tilesize)
             }
+
+
+
+
+            let x = Math.floor(sk.mouseX / this.settings.tilesize) + 1
+            let y = Math.floor(sk.mouseY / this.settings.tilesize) + 1
+
+
+            x = sk.constrain(x, 0, this.settings.width)
+            y = sk.constrain(y, 0, this.settings.height)
+
+
+            sk.textAlign(sk.LEFT)
+            sk.fill(this.settings.gridTextColor)
+            sk.text(`${this.selectedTool || ''} | ${x}, ${y}`, 10, ymax - 16)
         },
 
 
@@ -346,8 +458,8 @@ var app = new Vue({
 
                 sk.square(0, y, this.settings.tilesize)
                 sk.square(x, 0, this.settings.tilesize)
-                sk.square(x, (this.settings.rows - 1) * this.settings.tilesize, this.settings.tilesize)
-                sk.square((this.settings.columns - 1) * this.settings.tilesize, y, this.settings.tilesize)
+                sk.square(x, (this.settings.height - 1) * this.settings.tilesize, this.settings.tilesize)
+                sk.square((this.settings.width - 1) * this.settings.tilesize, y, this.settings.tilesize)
             }
 
             sk.fill(0,0,0,0)
@@ -380,11 +492,11 @@ var app = new Vue({
                 `MouseY:              ${sk.mouseY}`,
                 `X offset:            ${this.offsetX}`,
                 `Y offset:            ${this.offsetY}`,
-                `cells:               ${this.gridData.length}`,
+                // `cells:               ${this.tiles.length}`,
                 // `ViewOffset + MouseX: ${this.offsetX + sk.mouseX}`,
                 // `ViewOffset + MouseY: ${this.offsetY + sk.mouseY}`,
-                `View Width:          ${this.width}`,
-                `View Height:         ${this.height}`,
+                // `View Width:          ${this.width}`,
+                // `View Height:         ${this.height}`,
                 // `Zoom Level:          ${this.zoomLevel}`,
             ]
 
@@ -469,19 +581,19 @@ var app = new Vue({
             sk = sk ? sk : this.sketch
 
             // force rows and columns to numbers
-            this.settings.rows      = Number(this.settings.rows)
-            this.settings.columns   = Number(this.settings.columns)
+            this.settings.height      = Number(this.settings.height)
+            this.settings.width   = Number(this.settings.width)
 
             // resize canvas accordingly
-            sk.resizeCanvas(this.settings.columns * this.settings.tilesize, this.settings.rows * this.settings.tilesize)
+            sk.resizeCanvas(this.settings.width * this.settings.tilesize, this.settings.height * this.settings.tilesize)
 
             // calc grid center
-            this.gridCenterX = (this.settings.columns / 2) * this.settings.tilesize
-            this.gridCenterY = (this.settings.rows / 2) * this.settings.tilesize
+            this.gridCenterX = (this.settings.width / 2) * this.settings.tilesize
+            this.gridCenterY = (this.settings.height / 2) * this.settings.tilesize
 
             // update canvas stats
-            this.design.widthInches     = this.settings.columns / this.settings.aidaCount
-            this.design.heightInches    = this.settings.rows / this.settings.aidaCount
+            this.design.widthInches     = this.settings.width / this.settings.aidaCount
+            this.design.heightInches    = this.settings.height / this.settings.aidaCount
 
             this.design.widthMM         = this.design.widthInches * 25.4
             this.design.heightMM        = this.design.heightInches * 25.4
@@ -496,7 +608,6 @@ var app = new Vue({
             let design = this.design
 
             design.copyright = dayjs(design.copyright).format('YYYY-MM-DD')
-
 
             // invert grid text overlay colors
             this.settings.gridTextColor = getContrastYIQ(this.settings.gridBackgroundColor)
@@ -584,8 +695,6 @@ var app = new Vue({
 
             this.save()
         },
-
-
     },
 
 
@@ -829,4 +938,5 @@ function getContrastYIQ(hexcolor){
     // Get YIQ ratio
     var yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
 
+    return (yiq >= 128) ? '#000000' : '#ffffff';
 }
