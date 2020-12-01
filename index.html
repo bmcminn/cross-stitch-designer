@@ -24,34 +24,74 @@
 	</noscript>
 
 	<main id="app">
-		<vue-p5
-			class="waffles"
-			@setup="setup"
-			@draw="draw"
-			@keypressed="keypressed"
-            @mousemoved="mousemoved"
-            @mousepressed="mousepressed"
-			@windowresized="windowresized"
-		></vue-p5>
 
+        <div class="design-view">
 
-
-		<div class="controls controls--sidebar">
-            <section id="design-information">
-    			<h1>{{ design.title }}</h1>
-
-                <div>
-                Count Size: {{ settings.width }} x {{ settings.height }}
-                </div>
-
-                <div>
-                Finished Size: {{ design.widthInches|round }}" x {{ design.heightInches|round }}"
-                </div>
+            <header id="design-information" class="text-center design-info">
+                <h1>{{ design.title }}</h1>
 
                 <div>
                 Copyright &copy; {{ design.copyright|datetime('YYYY') }} {{ design.owner }}
                 </div>
-            </section>
+
+                <div>
+                Count Size: {{ settings.gridWidth }} x {{ settings.gridHeight }}
+                &nbsp;&nbsp;&nbsp;&nbsp;
+                Finished Size: {{ design.widthInches|round }}" x {{ design.heightInches|round }}"
+                </div>
+
+            </header>
+
+
+    		<vue-p5
+                :class="{ 'draw-centered': designViewDrawCentered }"
+    			@setup="setup"
+    			@draw="draw"
+    			@keypressed="keypressed"
+                @mousemoved="mousemoved"
+                @mousepressed="mousepressed"
+    			@windowresized="windowresized"
+    		></vue-p5>
+
+
+            <ul class="print-only">
+                <li v-for="layer in layers"
+                    :key="layer.color"
+                    class="flex"
+                >
+                    <span class="swatch" :style="{
+                        'background-color': layer.color
+                    }"></span>
+                    {{ layer.title }}
+                </li>
+            </ul>
+
+
+            <footer class="text-center print-only">
+                Made with {{ app.name }} v{{ app.version }}<br>
+                <a class="small" :href="app.links[0].link">{{ app.links[0].link }}</a>
+            </footer>
+
+
+            <footer class="app-copyright no-print">
+                <hr class="my-2">
+
+                <p class="text-center">
+                    {{ app.name }} v{{ app.version }}<br>
+                    &copy; {{ null|datetime('YYYY') }} <a href="https://github.com/bmcminn">bmcminn</a><br>
+                    <a href="https://github.com/bmcminn/cross-stitch-designer">Github</a> |
+                    <a href="https://github.com/bmcminn/cross-stitch-designer/blob/master/README.md">Docs</a> |
+                    <a href="https://github.com/bmcminn/cross-stitch-designer/issues">Issues</a>
+                </p>
+            </footer>
+        </div>
+
+
+
+
+
+		<div class="controls controls--sidebar no-print">
+
 
 
             <details id="document-configuration">
@@ -79,7 +119,7 @@
 
 
                 <div>
-                    <label for="design.copyright">Copyright</label>
+                    <label for="design.copyright">Copyright Date</label>
                     <input type="date"
                         class="full-width"
                         id="design.copyright"
@@ -87,15 +127,13 @@
                         @change="save()"
                     />
                 </div>
-            </details>
 
-            <details id="document-setup">
-                <summary>Document Setup</summary>
+
                 <div class="flex">
-                    <label for="settings.width">Width</label>
+                    <label for="settings.gridWidth">Width</label>
                     <input type="number"
-                        id="settings.width"
-                        v-model="settings.width"
+                        id="settings.gridWidth"
+                        v-model="settings.gridWidth"
                         :min="settings.gridSizeMin"
                         :max="settings.gridSizeMax"
                         @change="adjustGrid()"
@@ -103,10 +141,10 @@
                 </div>
 
     			<div class="flex">
-    				<label for="settings.height">Height</label>
+    				<label for="settings.gridHeight">Height</label>
     				<input type="number"
-    					id="settings.height"
-    					v-model="settings.height"
+    					id="settings.gridHeight"
+    					v-model="settings.gridHeight"
     					@change="adjustGrid()"
     					:min="settings.gridSizeMin"
     					:max="settings.gridSizeMax"
@@ -271,15 +309,6 @@
     			</ul>
             </div>
 
-            <hr class="my-2">
-
-            <p class="text-center">
-                {{ app.name }} v{{ app.version }}<br>
-                &copy; {{ null|datetime('YYYY') }} <a href="https://github.com/bmcminn">bmcminn</a><br>
-                <a href="https://github.com/bmcminn/cross-stitch-designer">Github</a> |
-                <a href="https://github.com/bmcminn/cross-stitch-designer/blob/master/README.md">Docs</a> |
-                <a href="https://github.com/bmcminn/cross-stitch-designer/issues">Issues</a>
-            </p>
 		</div>
 	</main>
 

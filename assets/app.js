@@ -18,7 +18,7 @@ var app = new Vue({
 
             app: {
                 name: 'Cross Stitch Designer',
-                version: '0.14 Alpha',
+                version: '0.15 Alpha',
                 author: {
                     name: 'bmcminn',
                     link: 'https://github.com/bmcminn',
@@ -51,12 +51,10 @@ var app = new Vue({
             zoomMax: 5,
             zoomLevel: 3,
 
-            width: window.width,
-            height: window.height,
-
             grid: [],
 
             gridCrossSize: 5,
+            gridMarginScale: 4,
 
             gridCenterX: 0,
             gridCenterY: 0,
@@ -67,7 +65,9 @@ var app = new Vue({
             prevOffsetX: 0,
             prevOffsetY: 0,
 
-            margin: 0,
+            designViewDrawCentered: false,
+
+            origin: 25,
             framerate: 20,
             isScrolling: false,
             selectedLayer: 0,
@@ -148,15 +148,16 @@ var app = new Vue({
                 aidaCount: 14,
                 aidaCountMin: 7,
                 aidaCountMax: 28,
-                width: 15,
-                height: 15,
+                gridWidth: 15,
+                gridHeight: 15,
                 gridSizeMin: 10,
-                gridSizeMax: 100,
+                gridSizeMax: 130,
                 gridTextColor: '#000000',
-                tilesize: 16,
+                tilesize: 12,
                 tilesizeMin: 8,
                 tilesizeMax: 20,
                 selectedLayer: 0,
+                showGrid: true,
                 showCursorMarkers: true,
                 showGridNumbers: true,
                 showCenterCross: true,
@@ -219,7 +220,9 @@ var app = new Vue({
 
         draw(sk) {
             // sk.clear()
-            sk.background(this.settings.gridBackgroundColor)
+            sk.background('#ffffff')
+
+            sk.translate(this.origin, this.origin)
 
             this.drawTiles(sk)
 
@@ -233,10 +236,16 @@ var app = new Vue({
 
 
         windowresized(sk) {
-            // sk = sk ? sk : this.sketch
-            // sk?.resizeCanvas(this.settings.width * this.settings.tilesize, this.settings.height * this.settings.tilesize)
 
-            // sk.resizeCanvas(window.innerWidth - this.margin, window.innerHeight - this.margin)
+
+            this.adjustGrid(sk)
+
+
+
+            // sk = sk ? sk : this.sketch
+            // sk?.resizeCanvas(this.settings.gridWidth * this.settings.tilesize, this.settings.gridHeight * this.settings.tilesize)
+
+            // sk.resizeCanvas(window.innerWidth - this.origin, window.innerHeight - this.origin)
             // this.recalculateTilesize()
         },
 
@@ -264,14 +273,17 @@ var app = new Vue({
 
 
             switch(key) {
-                case 'F3':          this.DEBUG_MODE = !this.DEBUG_MODE; break
-                case 'alt+]':       this.nextLayer(1); break
-                case 'alt+[':       this.nextLayer(-1); break
+                case 'F3':  this.DEBUG_MODE = !this.DEBUG_MODE; break
+                case ']':   this.nextLayer(1); break
+                case '[':   this.nextLayer(-1); break
 
                 // TODO: integrate sk.save(c, filename) to export design image
                 // case 'ctrl+e':          this.export()
-                case '+':           this.zoomGrid(1); break
-                case '-':           this.zoomGrid(-1); break
+
+                case '+':   this.zoomGrid(1); break
+                case '-':   this.zoomGrid(-1); break
+
+                // case 'g':   this.showGrid = !this.showGrid; break
                 // case 'ArrowLeft':   this.nudgeDesign(-1, 0); break
                 // case 'ArrowUp':     this.nudgeDesign(0, -1); break
                 // case 'ArrowRight':  this.nudgeDesign(1, 0); break
@@ -287,15 +299,18 @@ var app = new Vue({
 
         mousepressed(sk) {
 
-            let x = Math.floor(sk.mouseX / this.settings.tilesize)
-            let y = Math.floor(sk.mouseY / this.settings.tilesize)
+            let x = Math.floor(sk.mouseX / this.settings.tilesize) - this.gridMarginScale
+            let y = Math.floor(sk.mouseY / this.settings.tilesize) - this.gridMarginScale
 
             let coord = `${x},${y}`
 
-            let LEFT_CLICK = sk.mouseButton === 'left'
+            let LEFT_CLICK  = sk.mouseButton === 'left'
+            let RIGHT_CLICK = sk.mouseButton === 'right'
+
 
             if (this.selectedTool === TOOL_BRUSH && LEFT_CLICK) {
                 this.tiles[coord] = [x, y, this.settings.selectedLayer]
+                console.debug('Brush', x, y)
                 // this.tiles[coord] = {
                 //     x,
                 //     y,
@@ -312,12 +327,10 @@ var app = new Vue({
 
 
             if (this.selectedTool === TOOL_EYEDROPPER && LEFT_CLICK) {
-                // let index = xyToIndex(x, y, this.settings.width, this.settings.height)
                 let tile = this.tiles[coord]
 
                 if (tile) {
                     this.settings.selectedLayer = tile[2]
-                    console.debug('eydropper event', this.settings.selectedLayer)
                 }
             }
 
@@ -335,6 +348,14 @@ var app = new Vue({
 
             let tilesize = this.settings.tilesize
 
+            let origin = -this.origin
+            // sk.translate(this.origin, this.origin)
+
+            sk.strokeWeight(2)
+            sk.stroke(this.settings.gridLineColor)
+            sk.fill(this.settings.gridBackgroundColor)
+            sk.rect(0, 0, this.settings.gridWidth * this.settings.tilesize, this.settings.gridHeight * this.settings.tilesize)
+
             Object.keys(this.tiles).forEach((key, el) => {
 
                 if (!this.tiles.hasOwnProperty(key)) { return }
@@ -350,31 +371,76 @@ var app = new Vue({
 
             }, this)
 
+        },
 
-            // keys.foreach
-            // this.tiles.forEach((tile, index) => {
-            //     tile = tile[1]
 
-            //     sk.strokeWeight(0)
-            //     sk.fill(this.layers[tile.color].color)
+        drawTriangle(x, y, size, dir, color='#000000') {
+            let sk = this.sketch
 
-            //     sk.square(tile.x * this.settings.tilesize, tile.y * this.settings.tilesize, this.settings.tilesize)
-            // })
+            dir = `${dir}`.trim().toLowerCase()
+
+            // test if dir is valid
+            if (!'up|right|down|left'.includes(dir)) { return }
+
+
+            if ('up|left'.includes(dir)) { size *= -1 }
+
+            // center triangle around target x,y origin
+            x -= size / 2
+            y -= size / 2
+
+            sk.fill(color)
+
+            // draw left right
+            if ('left|right'.includes(dir)) {
+                sk.triangle(
+                    x,              y,
+                    x,              y + size,
+                    x + size ,      y + size / 2
+                )
+
+
+            // draw up/down
+            } else {
+
+                // draw triangle markers
+                sk.triangle(
+                    x,              y,
+                    x + size,       y,
+                    x + size / 2,   y + size
+                )
+
+
+            }
+
 
         },
 
 
-
         drawGrid(sk) {
 
-            let xmax = this.settings.width * this.settings.tilesize
-            let ymax = this.settings.height * this.settings.tilesize
+            // if (!this.showGrid) { return }
 
-            let tilecenter = Math.floor(this.settings.tilesize / 2)
+            let tilesize    = this.settings.tilesize
+            let tilecenter  = Math.floor(tilesize / 2)
 
-            // sk.fill(this.settings.gridBackgroundColor)
-            // sk.noStroke()
-            // sk.rect(0, 0, xmax, ymax)
+            let xmin = 0
+            let ymin = 0
+            let xmax = this.settings.gridWidth * tilesize
+            let ymax = this.settings.gridHeight * tilesize
+
+
+            let triSize     = 12
+            let triOffset   = 25
+
+            let xCenter = this.settings.gridWidth * tilesize / 2
+            let yCenter = this.settings.gridHeight * tilesize / 2
+
+
+            this.drawTriangle(xCenter, 0-triOffset,         triSize, 'down')
+            this.drawTriangle(xCenter, ymax + triOffset,    triSize, 'up')
+            this.drawTriangle(0 - triOffset,    yCenter,    triSize, 'right')
+            this.drawTriangle(xmax + triOffset, yCenter,    triSize, 'left')
 
 
             // setup text settings
@@ -384,87 +450,107 @@ var app = new Vue({
 
 
             // draw vertical grid lines
-            for (let x = this.settings.width; x >= 0; x--) {
+            for (let x = this.settings.gridWidth; x >= 0; x--) {
 
-                if (x === this.settings.width) { continue }
-                if (x === 0) { continue }
+                let offset = 0
+                let text = x
+
+                if (x === 0) {
+                    offset = 12
+                    text = 1
+                }
 
                 sk.strokeWeight(1)
 
                 if (x % 5 === 0) {
                     if (this.settings.showGridNumbers) {
                         sk.strokeWeight(0)
-                        // console.debug('settings.gridTextColor', this.settings.gridTextColor)
                         sk.fill(this.settings.gridTextColor)
-                        sk.text(x, x * this.settings.tilesize - tilecenter, tilecenter + 3)
-                        sk.text(x, x * this.settings.tilesize - tilecenter, ymax - tilecenter + 3)
+                        sk.text(text, offset + (x * tilesize) - tilecenter, -5)
+                        sk.text(text, offset + (x * tilesize) - tilecenter, ymax + 13)
                     }
 
                     sk.strokeWeight(2)
                 }
 
-                sk.line(x * this.settings.tilesize, 0, x * this.settings.tilesize, ymax)
+                sk.line(x * tilesize, 0, x * tilesize, ymax)
             }
 
 
             // draw horizontal grid lines
-            for (let y = this.settings.height; y >= 0; y--) {
+            for (let y = this.settings.gridHeight; y >= 0; y--) {
 
-                if (y === this.settings.height) { continue }
-                if (y === 0) { continue }
+                // if (y === this.settings.gridHeight) { continue }
+                // if (y === 0) { continue }
 
                 sk.strokeWeight(0.5)
                 sk.textAlign(sk.CENTER)
+
+                let offset = 5
+                let text = y
+
+
+                if (y === 0) {
+                    text = 1
+                    offset = 16
+                }
+
 
                 if (y % 5 === 0) {
 
                     if (this.settings.showGridNumbers) {
                         sk.strokeWeight(0)
                         sk.fill(this.settings.gridTextColor)
-                        sk.text(y, tilecenter, y * this.settings.tilesize - tilecenter + 5)
-                        sk.text(y, xmax - tilecenter, y * this.settings.tilesize - tilecenter + 5)
+
+                        sk.textAlign(sk.RIGHT)
+                        sk.text(text, -5,                    y * tilesize - tilecenter + offset)
+
+                        sk.textAlign(sk.LEFT)
+                        sk.text(text, 8 + xmax - tilecenter, y * tilesize - tilecenter + offset)
                     }
 
                     sk.strokeWeight(2)
                 }
 
-                sk.line(0, y * this.settings.tilesize, xmax, y * this.settings.tilesize)
+                sk.line(0, y * tilesize, xmax, y * tilesize)
             }
 
 
+            // let x = Math.floor(sk.mouseX / tilesize) + 1 - this.gridMarginScale
+            // let y = Math.floor(sk.mouseY / tilesize) + 1 - this.gridMarginScale
 
+            // x = sk.constrain(x, 0, this.settings.gridWidth)
+            // y = sk.constrain(y, 0, this.settings.gridHeight)
 
-            let x = Math.floor(sk.mouseX / this.settings.tilesize) + 1
-            let y = Math.floor(sk.mouseY / this.settings.tilesize) + 1
-
-
-            x = sk.constrain(x, 0, this.settings.width)
-            y = sk.constrain(y, 0, this.settings.height)
-
-
-            sk.textAlign(sk.LEFT)
-            sk.fill(this.settings.gridTextColor)
-            sk.text(`${this.selectedTool || ''} | ${x}, ${y}`, 10, ymax - 16)
+            // sk.textAlign(sk.CENTER)
+            // sk.fill(this.settings.gridTextColor)
+            // sk.text(`${this.selectedTool || ''} | ${x}, ${y}`, this.settings.gridWidth / 4 * tilesize, this.settings.gridHeight * tilesize + 30)
         },
 
 
         drawCursor(sk) {
-            let x = Math.floor(sk.mouseX / this.settings.tilesize) * this.settings.tilesize
-            let y = Math.floor(sk.mouseY / this.settings.tilesize) * this.settings.tilesize
+
+            let origin = 0 - this.origin
+            let tilesize    = this.settings.tilesize
+            let width       = this.settings.gridWidth
+            let height      = this.settings.gridHeight
+
+            let x = origin + Math.floor(sk.mouseX / tilesize) * tilesize
+            let y = origin + Math.floor(sk.mouseY / tilesize) * tilesize
 
             if (this.settings.showCursorMarkers) {
                 sk.fill('rgba(0,0,0,0.15)')
                 sk.strokeWeight(2)
 
-                sk.square(0, y, this.settings.tilesize)
-                sk.square(x, 0, this.settings.tilesize)
-                sk.square(x, (this.settings.height - 1) * this.settings.tilesize, this.settings.tilesize)
-                sk.square((this.settings.width - 1) * this.settings.tilesize, y, this.settings.tilesize)
+                sk.square(x, 0, tilesize)
+                sk.square(0, y, tilesize)
+                sk.square(x, (height - 1) * tilesize,    tilesize)
+                sk.square((width - 1) * tilesize,   y,                 tilesize)
             }
 
             sk.fill(0,0,0,0)
             sk.stroke(this.layers[this.settings.selectedLayer].color)
-            sk.square(x, y, this.settings.tilesize)
+            sk.square(x, y, tilesize)
         },
 
 
@@ -474,8 +560,12 @@ var app = new Vue({
             sk.stroke(this.settings.gridTextColor)
             sk.strokeWeight(2)
 
-            sk.line(this.gridCenterX, this.gridCenterY - this.gridCrossSize, this.gridCenterX, this.gridCenterY + this.gridCrossSize)
-            sk.line(this.gridCenterX - this.gridCrossSize, this.gridCenterY, this.gridCenterX + this.gridCrossSize, this.gridCenterY)
+            let cX = this.gridCenterX
+            let cY = this.gridCenterY
+            let cS = this.gridCrossSize
+
+            sk.line(cX, cY - cS, cX, cY + cS)
+            sk.line(cX - cS, cY, cX + cS, cY)
 
         },
 
@@ -495,8 +585,6 @@ var app = new Vue({
                 // `cells:               ${this.tiles.length}`,
                 // `ViewOffset + MouseX: ${this.offsetX + sk.mouseX}`,
                 // `ViewOffset + MouseY: ${this.offsetY + sk.mouseY}`,
-                // `View Width:          ${this.width}`,
-                // `View Height:         ${this.height}`,
                 // `Zoom Level:          ${this.zoomLevel}`,
             ]
 
@@ -521,12 +609,17 @@ var app = new Vue({
         // ==============================
 
         newLayer() {
+            let hexColor = randomHex()
+
             this.layers.unshift({
-                title:        `Layer ${this.layers.length}`,
-                color:        randomHex(), // '#5fd12e',
+                title:  `Layer ${this.layers.length}`,
+                color:  hexColor, // '#5fd12e',
+                id:     parseInt(new Date().getTime().toString().substr(-6), 10) + this.layers.length * 100,
                 // threadCount:  2,
                 // stitchType:   1,
                 editingtitle: false,
+                icon: null,
+                iconColor: getContrastYIQ(hexColor),
                 // tiles: [],
             })
 
@@ -576,29 +669,47 @@ var app = new Vue({
         },
 
 
+
+        setPageTitle(title) {
+            document.title = `${title} - ${this.app.name}`
+        },
+
+
         adjustGrid(sk) {
 
             sk = sk ? sk : this.sketch
 
+            this.origin = this.settings.tilesize * this.gridMarginScale
+            // sk.translate(this.origin, this.origin)
+
             // force rows and columns to numbers
-            this.settings.height      = Number(this.settings.height)
-            this.settings.width   = Number(this.settings.width)
+            this.settings.gridHeight  = Number(this.settings.gridHeight)
+            this.settings.gridWidth   = Number(this.settings.gridWidth)
 
             // resize canvas accordingly
-            sk.resizeCanvas(this.settings.width * this.settings.tilesize, this.settings.height * this.settings.tilesize)
+            let margin  = this.origin * 2
+            let width   = this.settings.gridWidth * this.settings.tilesize
+            let height  = this.settings.gridHeight * this.settings.tilesize
+
+            sk.resizeCanvas(width + margin, height + margin)
 
             // calc grid center
-            this.gridCenterX = (this.settings.width / 2) * this.settings.tilesize
-            this.gridCenterY = (this.settings.height / 2) * this.settings.tilesize
+            this.gridCenterX = width / 2
+            this.gridCenterY = height / 2
 
             // update canvas stats
-            this.design.widthInches     = this.settings.width / this.settings.aidaCount
-            this.design.heightInches    = this.settings.height / this.settings.aidaCount
+            this.design.widthInches     = this.settings.gridWidth / this.settings.aidaCount
+            this.design.heightInches    = this.settings.gridHeight / this.settings.aidaCount
 
             this.design.widthMM         = this.design.widthInches * 25.4
             this.design.heightMM        = this.design.heightInches * 25.4
 
             this.save()
+
+
+            let designView = document.querySelector('.design-view')
+
+            this.designViewDrawCentered = width < designView.clientWidth
         },
 
 
@@ -622,6 +733,11 @@ var app = new Vue({
 
             localStorage.setItem('designdata', JSON.stringify(data))
 
+            if (this.design.owner) {
+                localStorage.setItem('copyrightOwner', this.design.owner)
+            }
+
+            this.setPageTitle(this.design.title)
             // this.compressData(data)
         },
 
@@ -630,6 +746,12 @@ var app = new Vue({
 
             // let data = window.location.hash.substr(1)
             // if (data.trim().length === 0) { return }
+
+            let copyrightOwner = localStorage.getItem('copyrightOwner')
+
+            if (copyrightOwner) {
+                this.design.owner = copyrightOwner
+            }
 
             let data = localStorage.getItem('designdata')
 
@@ -643,6 +765,12 @@ var app = new Vue({
 
             data.design.copyright = new Date(data.design.copyright)
             this.design     = data.design
+
+            if (copyrightOwner) {
+                this.design.owner = copyrightOwner
+            }
+
+            this.setPageTitle(this.design.title)
 
         },
 
@@ -659,33 +787,33 @@ var app = new Vue({
 
 
         recalculateTilesize() {
-            this.settings.tilesize       = this.baseTilesize * this.zoomLevel // * (this.width / 1500)
+            this.settings.tilesize = this.baseTilesize * this.zoomLevel // * (this.width / 1500)
 
         },
 
 
-        zoom(level) {
-            let newZoom = this.zoomLevel + (this.zoomAdjust * level)
+        // zoom(level) {
+        //     let newZoom = this.zoomLevel + (this.zoomAdjust * level)
 
-            let minZoom = 1
-            let maxZoom = 5
+        //     let minZoom = 1
+        //     let maxZoom = 5
 
-            if (minZoom <= newZoom && newZoom <= maxZoom) {
-                this.zoomLevel = newZoom
-            }
+        //     if (minZoom <= newZoom && newZoom <= maxZoom) {
+        //         this.zoomLevel = newZoom
+        //     }
 
-            this.recalculateTilesize()
-        },
-
-
-        setTool(tool) {
-
-        },
+        //     this.recalculateTilesize()
+        // },
 
 
-        addNewLayer() {
+        // setTool(tool) {
 
-        },
+        // },
+
+
+        // addNewLayer() {
+
+        // },
 
 
         moveLayer(index, dir) {
@@ -940,3 +1068,4 @@ function getContrastYIQ(hexcolor){
 
     return (yiq >= 128) ? '#000000' : '#ffffff';
 }
+

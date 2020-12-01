@@ -7,6 +7,15 @@
     --button-border-color: #5baaff;
 }
 
+
+@media print {
+    .no-print { display: none !important; }
+}
+
+@media screen {
+    .print-only { display: none; }
+}
+
 /*
 html {
   	box-sizing: border-box;
@@ -15,6 +24,9 @@ html {
   	box-sizing: inherit;
 }
 */
+
+
+
 
 body {
 	margin: 0;
@@ -38,9 +50,22 @@ body {
 
 
 
+small,
+.small {
+    font-size: 0.85em;
+}
+
 
 .controls {
 	position: fixed;
+}
+
+
+.swatch {
+    display: inline-block;
+    width: 1.25em;
+    height: 1.25em;
+    vertical-align: middle;
 }
 
 
@@ -91,6 +116,11 @@ summary {
     margin-bottom: 1em;
 }
 
+
+h1 { font-size: 1.5em; }
+
+
+
 .controls--sidebar {
 	position: fixed;
 	bottom: unset;
@@ -106,21 +136,33 @@ summary {
 }
 
 
-.waffles {
-    width: calc(100vw - var(--sidebar-width));
-    height: 100vh;
-    overflow: auto;
+@media screen{
+    .design-view {
+        width: calc(100vw - var(--sidebar-width));
+        height: 100vh;
+        overflow: auto;
+    }
 }
 
-.waffles canvas {
+.design-view canvas {
     border: 2px solid;
     margin: 1em;
+    position: relative;
+}
 
+.draw-centered canvas {
+    transform: translateX(-50%);
+    left: 50%;
+}
+
+
+.design-info {
+    line-height: 2em;
 }
 
 
 .layer-color {
-	width: 12px;
+	width: 2em;
 	height: 2em;
 	appearance: none;
 }
