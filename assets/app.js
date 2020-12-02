@@ -8,6 +8,7 @@ const TOOL_FILL         = 'Fill'
 const TOOL_PEN          = 'Pen'
 const TOOL_RULER        = 'Ruler'
 const TOOL_SELECT       = 'Select'
+const TOOL_LINE_STITCH  = 'Line Stitch'
 
 
 
@@ -75,55 +76,76 @@ var app = new Vue({
 
             currentTool: 'linestitch',
 
-            tools: {
-                linestitch: {
-
-                }
-            },
 
             tiles: {},
+            lines: [],
 
+            templine: null,
 
             selectedTool: null,
+
+            actions: {
+                'F3':   () => { this.DEBUG_MODE = !this.DEBUG_MODE },
+                ']':    () => { this.nextLayer(1) },
+                '[':    () => { this.nextLayer(-1) },
+                '+':    () => { this.zoomGrid(1) },
+                '-':    () => { this.zoomGrid(-1) },
+
+                // TODO: integrate sk.save(c, filename) to export design image
+                // case 'ctrl+e':          this.export()
+
+                // case 'g':   this.showGrid = !this.showGrid; break
+                // case 'ArrowLeft':   this.nudgeDesign(-1, 0); break
+                // case 'ArrowUp':     this.nudgeDesign(0, -1); break
+                // case 'ArrowRight':  this.nudgeDesign(1, 0); break
+                // case 'ArrowDown':   this.nudgeDesign(0, 1); break
+            },
+
 
             tools: [
                 {
                     name: TOOL_RULER,
                     icon: 'fa-ruler',
-                    command: 'r',
+                    command: 'R',
                 },
                 {
                     name: TOOL_ERASER,
                     icon: 'fa-eraser',
-                    command: 'e',
+                    command: 'E',
                     enabled: true,
                 },
                 {
                     name: TOOL_BRUSH,
                     icon: 'fa-paint-brush',
-                    command: 'b',
+                    command: 'B',
                     enabled: true,
                 },
                 {
                     name: TOOL_PEN,
                     icon: 'fa-pen-nib',
-                    command: 'p',
+                    command: 'P',
                 },
                 {
                     name: TOOL_FILL,
                     icon: 'fa-fill-drip',
-                    command: 'f',
+                    command: 'F',
                 },
                 {
                     name: TOOL_EYEDROPPER,
                     icon: 'fa-eye-dropper',
-                    command: 'i',
+                    command: 'I',
                     enabled: true,
                 },
                 {
                     name: TOOL_SELECT,
                     icon: 'fa-crop-alt',
-                    command: 'm',
+                    command: 'M',
+                },
+                {
+                    name: TOOL_LINE_STITCH,
+                    icon: 'fa-slash',
+                    command: 'L',
+                    enabled: true,
                 },
             ],
 
@@ -219,7 +241,7 @@ var app = new Vue({
 
 
         draw(sk) {
-            // sk.clear()
+            sk.clear()
             sk.background('#ffffff')
 
             sk.translate(this.origin, this.origin)
@@ -227,6 +249,9 @@ var app = new Vue({
             this.drawTiles(sk)
 
             this.drawGrid(sk)
+
+            this.drawLines(sk)
+
             this.drawDebug(sk)
 
             this.drawCursor(sk)
@@ -258,81 +283,97 @@ var app = new Vue({
 
             let key = []
 
-            sk.keyIsDown(sk.CONTROL)   ? key.push('ctrl') : null
-            sk.keyIsDown(sk.SHIFT)  ? key.push('shift') : null
-            sk.keyIsDown(sk.ALT)    ? key.push('alt') : null
+            sk.keyIsDown(sk.CONTROL) ? key.push('ctrl') : null
+            sk.keyIsDown(sk.SHIFT) ? key.push('shift') : null
+            sk.keyIsDown(sk.ALT) ? key.push('alt') : null
 
             key.push(sk.key)
 
             key = key.join('+')
 
-            console.debug('keydown event', sk, key)
+            // console.debug('keydown event', sk, key)
 
-
-            // if (ACTIONS[key]) { ACTIONS[key]() }
-
-
-            switch(key) {
-                case 'F3':  this.DEBUG_MODE = !this.DEBUG_MODE; break
-                case ']':   this.nextLayer(1); break
-                case '[':   this.nextLayer(-1); break
-
-                // TODO: integrate sk.save(c, filename) to export design image
-                // case 'ctrl+e':          this.export()
-
-                case '+':   this.zoomGrid(1); break
-                case '-':   this.zoomGrid(-1); break
-
-                // case 'g':   this.showGrid = !this.showGrid; break
-                // case 'ArrowLeft':   this.nudgeDesign(-1, 0); break
-                // case 'ArrowUp':     this.nudgeDesign(0, -1); break
-                // case 'ArrowRight':  this.nudgeDesign(1, 0); break
-                // case 'ArrowDown':   this.nudgeDesign(0, 1); break
+            if (this.actions[key]) {
+                this.actions[key]()
+                return false
             }
 
-            let tool = this.tools.find(el => sk.key === el.command.trim() ? el : null)
+
+            let tool = this.tools.find(el => sk.key === el.command.toLowerCase() ? el : null)
 
             if (tool) { this.selectedTool = tool.name }
+
+
+
+            tool = this.tools.find(el => el.name === this.selectedTool)
+
+            if (tool?.name === TOOL_LINE_STITCH) {
+
+                // TODO: figure out more convient/less spaghetti way of cancelling tool actions
+                if (`Escape|${tool.command}`.includes(key)) {
+
+                    // if already drawing a line, cancel the line
+                    if (this?.templine?.length === 2){
+                        this.templine = null
+                        return false
+                    }
+
+                }
+
+            }
 
         },
 
 
         mousepressed(sk) {
 
-            let x = Math.floor(sk.mouseX / this.settings.tilesize) - this.gridMarginScale
-            let y = Math.floor(sk.mouseY / this.settings.tilesize) - this.gridMarginScale
+            let [x, y] = this.getMouseCoords()
 
             let coord = `${x},${y}`
 
             let LEFT_CLICK  = sk.mouseButton === 'left'
             let RIGHT_CLICK = sk.mouseButton === 'right'
 
+            if (!this.isClickInbounds()) { return }
+
 
             if (this.selectedTool === TOOL_BRUSH && LEFT_CLICK) {
                 this.tiles[coord] = [x, y, this.settings.selectedLayer]
-                console.debug('Brush', x, y)
-                // this.tiles[coord] = {
-                //     x,
-                //     y,
-                //     color: this.settings.selectedLayer,
-                // }
             }
 
-
-            if (this.selectedTool === TOOL_ERASER && LEFT_CLICK) {
+            else if (this.selectedTool === TOOL_ERASER && LEFT_CLICK) {
                 if (this.tiles[coord]) {
                     delete this.tiles[coord]
                 }
             }
 
-
-            if (this.selectedTool === TOOL_EYEDROPPER && LEFT_CLICK) {
+            else if (this.selectedTool === TOOL_EYEDROPPER && LEFT_CLICK) {
                 let tile = this.tiles[coord]
 
                 if (tile) {
                     this.settings.selectedLayer = tile[2]
                 }
             }
+
+            // else if (this.selectedTool === TOOL_PEN && LEFT_CLICK) {
+            //     let templine = this.templine || []
+            // }
+
+            else if (this.selectedTool === TOOL_LINE_STITCH && LEFT_CLICK) {
+                this.templine = this.templine || []
+
+                this.templine.push(x, y)
+
+                if (this.templine.length >= 4) {
+                    this.lines.push([...this.templine, this.settings.selectedLayer])
+                    this.templine = []
+                    this.templine.push(x,y)
+                }
+            }
+
+
+            // else if (this.selectedTool === TOOL_LINE_STITCH && RIGHT_CLICK) {
+            // }
 
             this.save()
         },
@@ -351,10 +392,13 @@ var app = new Vue({
             let origin = -this.origin
             // sk.translate(this.origin, this.origin)
 
+            let [xmin, ymin, xmax, ymax] = this.getDesignPixelDimensions()
+
             sk.strokeWeight(2)
             sk.stroke(this.settings.gridLineColor)
             sk.fill(this.settings.gridBackgroundColor)
-            sk.rect(0, 0, this.settings.gridWidth * this.settings.tilesize, this.settings.gridHeight * this.settings.tilesize)
+            // sk.rect(0, 0, this.settings.gridWidth * this.settings.tilesize, this.settings.gridHeight * this.settings.tilesize)
+            sk.rect(xmin, ymin, xmax, ymax)
 
             Object.keys(this.tiles).forEach((key, el) => {
 
@@ -374,6 +418,86 @@ var app = new Vue({
         },
 
 
+        drawLines(sk) {
+
+            if (!this.lines) { return }
+
+            let tilesize = this.settings.tilesize
+
+            sk.strokeWeight(3)
+
+            this.lines.forEach((el, index) => {
+
+                let [x1, y1, x2, y2, colorIndex] = el
+
+                sk.stroke(this.layers[colorIndex].color)
+                sk.line(x1 * tilesize, y1 * tilesize, x2 * tilesize, y2 * tilesize)
+
+            })
+
+
+            if (this.templine) {
+                let [x1, y1] = this.templine
+                let [x2, y2] = this.getMouseCoords()
+
+                sk.stroke(this.layers[this.settings.selectedLayer].color)
+                sk.line(x1 * tilesize, y1 * tilesize, x2 * tilesize, y2 * tilesize)
+            }
+
+        },
+
+
+        /**
+         * Gets the mouse coordinates relative to grid row/columns
+         *
+         * @return     {Array}  The mouse coordinates.
+         */
+        getMouseCoords() {
+            let sk = this.sketch
+
+            let x = Math.floor(sk.mouseX / this.settings.tilesize) - this.gridMarginScale
+            let y = Math.floor(sk.mouseY / this.settings.tilesize) - this.gridMarginScale
+
+            // console.debug('getMouseCoords', x, y, this.origin)
+
+            return [x,y]
+        },
+
+
+        isClickInbounds() {
+            let [mx, my]    = this.getMouseCoords()
+            let [xmin, ymin, xmax, ymax] = this.getDesignCoords()
+
+            return xmin <= mx && mx <= xmax && ymin <= my && my <= ymax
+        },
+
+
+        getDesignPixelDimensions(sk) {
+            return [
+                0,
+                0,
+                this.settings.gridWidth * this.settings.tilesize,
+                this.settings.gridHeight * this.settings.tilesize,
+            ]
+        },
+
+
+        /**
+         * Gets the design grid coordinates.
+         *
+         * @return  Array<[xmin, ymin, xmax, ymax]>  The design grid coordinates.
+         *
+         */
+        getDesignCoords() {
+            return [
+                0,
+                0,
+                this.settings.gridWidth - 1,
+                this.settings.gridHeight - 1,
+            ]
+        },
+
+
         drawTriangle(x, y, size, dir, color='#000000') {
             let sk = this.sketch
 
@@ -389,6 +513,7 @@ var app = new Vue({
             x -= size / 2
             y -= size / 2
 
+            sk.strokeWeight(0)
             sk.fill(color)
 
             // draw left right
@@ -424,17 +549,16 @@ var app = new Vue({
             let tilesize    = this.settings.tilesize
             let tilecenter  = Math.floor(tilesize / 2)
 
-            let xmin = 0
-            let ymin = 0
-            let xmax = this.settings.gridWidth * tilesize
-            let ymax = this.settings.gridHeight * tilesize
+            let [xmin, ymin, xmax, ymax] = this.getDesignPixelDimensions()
 
+            let gridWidth   = this.settings.gridWidth
+            let gridHeight  = this.settings.gridHeight
 
             let triSize     = 12
             let triOffset   = 25
 
-            let xCenter = this.settings.gridWidth * tilesize / 2
-            let yCenter = this.settings.gridHeight * tilesize / 2
+            let xCenter = xmax / 2
+            let yCenter = ymax / 2
 
 
             this.drawTriangle(xCenter, 0-triOffset,         triSize, 'down')
@@ -450,7 +574,7 @@ var app = new Vue({
 
 
             // draw vertical grid lines
-            for (let x = this.settings.gridWidth; x >= 0; x--) {
+            for (let x = gridWidth; x >= 0; x--) {
 
                 let offset = 0
                 let text = x
@@ -478,10 +602,7 @@ var app = new Vue({
 
 
             // draw horizontal grid lines
-            for (let y = this.settings.gridHeight; y >= 0; y--) {
-
-                // if (y === this.settings.gridHeight) { continue }
-                // if (y === 0) { continue }
+            for (let y = gridHeight; y >= 0; y--) {
 
                 sk.strokeWeight(0.5)
                 sk.textAlign(sk.CENTER)
@@ -516,11 +637,12 @@ var app = new Vue({
             }
 
 
-            // let x = Math.floor(sk.mouseX / tilesize) + 1 - this.gridMarginScale
-            // let y = Math.floor(sk.mouseY / tilesize) + 1 - this.gridMarginScale
+            // let [x, y] = this.getMouseCoords()
+            // x -= 1
+            // y -= 1
 
-            // x = sk.constrain(x, 0, this.settings.gridWidth)
-            // y = sk.constrain(y, 0, this.settings.gridHeight)
+            // x = sk.constrain(x, 0, gridWidth)
+            // y = sk.constrain(y, 0, gridHeight)
 
             // sk.textAlign(sk.CENTER)
             // sk.fill(this.settings.gridTextColor)
@@ -530,7 +652,7 @@ var app = new Vue({
 
         drawCursor(sk) {
 
-            let origin = 0 - this.origin
+            let origin      = 0 - this.origin
             let tilesize    = this.settings.tilesize
             let width       = this.settings.gridWidth
             let height      = this.settings.gridHeight
@@ -538,19 +660,38 @@ var app = new Vue({
             let x = origin + Math.floor(sk.mouseX / tilesize) * tilesize
             let y = origin + Math.floor(sk.mouseY / tilesize) * tilesize
 
-            if (this.settings.showCursorMarkers) {
-                sk.fill('rgba(0,0,0,0.15)')
-                sk.strokeWeight(2)
+            sk.cursor()
 
-                sk.square(x, 0, tilesize)
-                sk.square(0, y, tilesize)
-                sk.square(x, (height - 1) * tilesize,    tilesize)
-                sk.square((width - 1) * tilesize,   y,                 tilesize)
+
+            // draw square cursor
+            if (`${TOOL_BRUSH}|${TOOL_ERASER}|${TOOL_EYEDROPPER}`.includes(this.selectedTool)) {
+
+                sk.noCursor()
+
+                if (this.settings.showCursorMarkers) {
+                    sk.fill('rgba(0,0,0,0.15)')
+                    sk.strokeWeight(2)
+
+                    sk.square(x, 0, tilesize)
+                    sk.square(0, y, tilesize)
+                    sk.square(x, (height - 1) * tilesize,    tilesize)
+                    sk.square((width - 1) * tilesize,   y,                 tilesize)
+                }
+
+                sk.fill(0,0,0,0)
+                sk.stroke(this.layers[this.settings.selectedLayer].color)
+                sk.square(x, y, tilesize)
             }
 
-            sk.fill(0,0,0,0)
-            sk.stroke(this.layers[this.settings.selectedLayer].color)
-            sk.square(x, y, tilesize)
+
+            // draw point cursor
+            if (`${TOOL_LINE_STITCH}`.includes(this.selectedTool)) {
+                sk.noCursor()
+                sk.stroke(this.layers[this.settings.selectedLayer].color)
+                sk.strokeWeight(6)
+                sk.point(x, y)
+            }
+
         },
 
 
@@ -665,6 +806,7 @@ var app = new Vue({
 
             if (ans) {
                 this.tiles = {}
+                this.lines = []
             }
         },
 
@@ -728,6 +870,7 @@ var app = new Vue({
                 layers:     this.layers,
                 settings:   this.settings,
                 tiles:      this.tiles,
+                lines:      this.lines,
                 design,
             }
 
@@ -749,6 +892,8 @@ var app = new Vue({
 
             let copyrightOwner = localStorage.getItem('copyrightOwner')
 
+            this.design = this.design || {}
+
             if (copyrightOwner) {
                 this.design.owner = copyrightOwner
             }
@@ -761,6 +906,7 @@ var app = new Vue({
 
             this.layers     = data.layers
             this.tiles      = data.tiles
+            this.lines      = data.lines
             this.settings   = Object.assign({}, this.settings, data.settings)
 
             data.design.copyright = new Date(data.design.copyright)
@@ -827,14 +973,15 @@ var app = new Vue({
 
 
     mounted() {
-    },
-
-
-    created() {
 
         this.load()
 
         document.body.classList.remove('no-js')
+
+    },
+
+
+    created() {
 
     },
 
@@ -1069,3 +1216,6 @@ function getContrastYIQ(hexcolor){
     return (yiq >= 128) ? '#000000' : '#ffffff';
 }
 
+function isArray(array) {
+    return Array.isArray(array)
+}

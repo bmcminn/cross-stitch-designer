@@ -17,9 +17,10 @@ A web app for designing simple cross stitch patterns and sharing them with your 
 
 ### Hotkeys
 
-- <kbd>b</kbd> - enable the Brush tool
-- <kbd>e</kbd> - enable the Eraser tool
-- <kbd>i</kbd> - enable the Eyedropper tool
+- <kbd>B</kbd> - enable the Brush tool
+- <kbd>E</kbd> - enable the Eraser tool
+- <kbd>I</kbd> - enable the Eyedropper tool
+- <kbd>L</kbd> - enable the Line Stitch tool; <kbd>esc</kbd> to cancel drawing line
 - <kbd>[</kbd> and <kbd>]</kbd> - toggle between the next/previous layer color
 - <kbd>+</kbd> - zoom in the design
 - <kbd>-</kbd> - zoom out the design
