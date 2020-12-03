@@ -36,6 +36,48 @@ body {
 }
 
 
+
+details > div,
+details > div + div {
+    margin: 0.5em 1.1em;
+}
+
+details + details {
+    margin: 1em 0;
+}
+
+summary {
+    margin-bottom: 1em;
+}
+
+
+h1 { font-size: 1.5em; }
+
+
+button {
+    appearance: none;
+    border: 1px solid var(--button-border-color--selected);
+}
+
+button[selected] {
+    background-color: var(--button-border-color--selected);
+    color: #fff;
+}
+
+
+button:hover {
+    cursor: pointer;
+}
+
+
+
+
+small,
+.small {
+    font-size: 0.85em;
+}
+
+
 .text-center { text-align: center; }
 
 .mt-3 { margin-top: 3em; }
@@ -49,11 +91,6 @@ body {
 .flex-center { align-items: center; }
 
 
-
-small,
-.small {
-    font-size: 0.85em;
-}
 
 
 .controls {
@@ -87,39 +124,6 @@ small,
     line-height: 1.25em;
 }
 
-button {
-    appearance: none;
-    border: 1px solid var(--button-border-color--selected);
-}
-
-button[selected] {
-    background-color: var(--button-border-color--selected);
-    color: #fff;
-}
-
-
-button:hover {
-    cursor: pointer;
-}
-
-
-details > div,
-details > div + div {
-    margin: 0.5em 1.1em;
-}
-
-details + details {
-    margin: 1em 0;
-}
-
-summary {
-    margin-bottom: 1em;
-}
-
-
-h1 { font-size: 1.5em; }
-
-
 
 .controls--sidebar {
 	position: fixed;
@@ -145,7 +149,6 @@ h1 { font-size: 1.5em; }
 }
 
 .design-view canvas {
-    border: 2px solid;
     margin: 1em;
     position: relative;
 }

@@ -1,14 +1,10 @@
 'use strict';
 
 
-const TOOL_BRUSH        = 'Brush'
-const TOOL_ERASER       = 'Eraser'
-const TOOL_EYEDROPPER   = 'Eyedropper'
-const TOOL_FILL         = 'Fill'
-const TOOL_PEN          = 'Pen'
-const TOOL_RULER        = 'Ruler'
-const TOOL_SELECT       = 'Select'
-const TOOL_LINE_STITCH  = 'Line Stitch'
+// COLOR CONSTANTS
+const WHITE         = '#ffffff'
+const BLACK         = '#000000'
+const DEBUG_COLOR   = '#ff9900'
 
 
 
@@ -19,7 +15,7 @@ var app = new Vue({
 
             app: {
                 name: 'Cross Stitch Designer',
-                version: '0.15 Alpha',
+                version: '0.16 Alpha',
                 author: {
                     name: 'bmcminn',
                     link: 'https://github.com/bmcminn',
@@ -77,12 +73,18 @@ var app = new Vue({
             currentTool: 'linestitch',
 
 
+            ruler: [],
+
+
             tiles: {},
             lines: [],
 
+            undolist: [],
+            undolength: 20,
+
             templine: null,
 
-            selectedTool: null,
+            activeTool: null,
 
             actions: {
                 'F3':   () => { this.DEBUG_MODE = !this.DEBUG_MODE },
@@ -102,54 +104,6 @@ var app = new Vue({
             },
 
 
-            tools: [
-                {
-                    name: TOOL_RULER,
-                    icon: 'fa-ruler',
-                    command: 'R',
-                },
-                {
-                    name: TOOL_ERASER,
-                    icon: 'fa-eraser',
-                    command: 'E',
-                    enabled: true,
-                },
-                {
-                    name: TOOL_BRUSH,
-                    icon: 'fa-paint-brush',
-                    command: 'B',
-                    enabled: true,
-                },
-                {
-                    name: TOOL_PEN,
-                    icon: 'fa-pen-nib',
-                    command: 'P',
-                },
-                {
-                    name: TOOL_FILL,
-                    icon: 'fa-fill-drip',
-                    command: 'F',
-                },
-                {
-                    name: TOOL_EYEDROPPER,
-                    icon: 'fa-eye-dropper',
-                    command: 'I',
-                    enabled: true,
-                },
-                {
-                    name: TOOL_SELECT,
-                    icon: 'fa-crop-alt',
-                    command: 'M',
-                },
-                {
-                    name: TOOL_LINE_STITCH,
-                    icon: 'fa-slash',
-                    command: 'L',
-                    enabled: true,
-                },
-            ],
-
-
             aidaCounts: [ 7, 10, 11, 12, 14, 16, 18, 22, 28 ],
 
 
@@ -165,16 +119,16 @@ var app = new Vue({
 
 
             settings: {
-                gridBackgroundColor: '#ffffff',
+                gridBackgroundColor: WHITE,
                 gridLineColor: '#dfdfdf',
                 aidaCount: 14,
                 aidaCountMin: 7,
                 aidaCountMax: 28,
-                gridWidth: 15,
-                gridHeight: 15,
+                gridWidth: 30,
+                gridHeight: 30,
                 gridSizeMin: 10,
                 gridSizeMax: 130,
-                gridTextColor: '#000000',
+                gridTextColor: BLACK,
                 tilesize: 12,
                 tilesizeMin: 8,
                 tilesizeMax: 20,
@@ -190,20 +144,310 @@ var app = new Vue({
                 {
                     title: 'green',
                     color: '#5fd12e',
+                    id: 123,
                     // threadCount: 2,
                     // stitchType: 1,
                     editingtitle: false,
                     // tiles: [],
                 },
+
                 {
                     title: 'puple',
                     color: '#8080ff',
+                    id: 456,
                     // threadCount: 2,
                     // stitchType: 1,
                     editingtitle: false,
                     // tiles: [],
                 },
             ],
+
+
+            tools: [
+                {
+                    name: 'Measure',
+                    icon: 'fa-ruler',
+                    command: 'M',
+                    enabled: true,
+
+                    draw: (sk) => {
+                        let [x,y]       = this.getMouseCoords()
+                        let cursorSize  = 10
+                        let ruler       = this.ruler
+                        let rulerColor  = DEBUG_COLOR
+                        let tileCenter  = Math.floor(tilesize / 2)
+                        let tilesize    = this.settings.tilesize
+
+                        sk.stroke(rulerColor)
+                        sk.strokeWeight(cursorSize)
+
+                        // draw initial ruler cursor
+                        sk.point(x * tilesize + tileCenter, y * tilesize + tileCenter)
+
+                        // break early if there's nothing to show
+                        if (ruler.length === 0) { return }
+
+                        let [x1, y1, x2, y2] = ruler
+
+                        // if x2,y2 is undefined, use mouse coords
+                        x2 = x2 || x
+                        y2 = y2 || y
+
+                        let [dx, dy] = deltaXY(x1, y1, x2, y2)
+
+                        x1 = x1 * tilesize + tileCenter
+                        x2 = x2 * tilesize + tileCenter
+                        y1 = y1 * tilesize + tileCenter
+                        y2 = y2 * tilesize + tileCenter
+
+                        sk.point(x1, y1)
+                        sk.point(x2, y2)
+
+                        sk.strokeWeight(Math.floor(cursorSize / 3))
+                        sk.line(x1, y1, x2, y2)
+
+                        sk.stroke(WHITE)
+                        sk.strokeWeight(3)
+                        sk.fill('black')
+                        sk.text(`x: ${dx}, y: ${dy}`, x2, y2)
+                    },
+
+                    keyPressed: (key) => {
+                        if (key === 'Escape') {
+                            this.ruler = []
+                            return false
+                        }
+                    },
+
+                    mousePressed: (cmd) => {
+                        if (!this.isCursorInbounds(true)) { return }
+
+                        let [x, y] = this.getMouseCoords()
+
+                        let coord = `${x},${y}`
+
+                        this.ruler = this.ruler || []
+                        this.ruler.push(x,y)
+
+                        if (this.ruler.length > 4) {
+                            this.ruler = []
+                            this.ruler.push(x,y)
+                        }
+                    },
+
+                    toolChanged: () => {
+                        this.ruler = []
+                    },
+                },
+
+                {
+                    name: 'Eraser',
+                    icon: 'fa-eraser',
+                    command: 'E',
+                    enabled: true,
+
+                    draw: (sk) => {
+                        if (!this.isCursorInbounds(false)) { return }
+                        this.drawCursor(sk)
+                    },
+
+                    mousePressed: (cmd) => {
+                        if (!this.isCursorInbounds(false)) { return }
+
+                        let [x, y] = this.getMouseCoords()
+
+                        let coord = `${x},${y}`
+
+                        if (this.tiles[coord]) {
+                            delete this.tiles[coord]
+                        }
+
+                        this.save()
+                    },
+
+                    undo: (ctx) => {
+                    },
+                },
+
+                {
+                    name: 'Brush',
+                    icon: 'fa-paint-brush',
+                    command: 'B',
+                    enabled: true,
+
+                    draw: (sk) => {
+                        if (!this.isCursorInbounds(false)) { return }
+                        this.drawCursor(sk)
+                    },
+
+                    keyPressed: (sk) => {
+                    },
+
+                    mousePressed: (cmd) => {
+                        if (!this.isCursorInbounds(false)) { return }
+
+                        let [x, y] = this.getMouseCoords()
+
+                        let coord = `${x},${y}`
+
+                        this.tiles[coord] = [x, y, this.settings.selectedLayer]
+
+                        this.save()
+
+                        return false
+                    },
+
+                    toolChanged: (sk) => {
+                    },
+
+                    undo: (ctx) => {
+                    },
+                },
+
+                {
+                    name: 'Pen',
+                    icon: 'fa-pen-nib',
+                    command: 'P',
+
+                    draw: (sk) => {
+                        if (!this.isCursorInbounds()) { return }
+                        this.drawCursor(sk)
+                    },
+
+                    keyPressed: (sk) => {
+                    },
+
+                    mousePressed: (cmd) => {
+                        // let templine = this.templine || []
+
+                        this.save()
+                    },
+
+                    toolChanged: (sk) => {
+                    },
+                },
+
+                {
+                    name: 'Fill',
+                    icon: 'fa-fill-drip',
+                    command: 'F',
+
+                    draw: (sk) => {
+                    },
+
+                    keyPressed: (sk) => {
+                    },
+
+                    mousePressed: (cmd) => {
+                    },
+
+                    toolChanged: (sk) => {
+                    },
+                },
+
+                {
+                    name: 'Eyedropper',
+                    icon: 'fa-eye-dropper',
+                    command: 'I',
+                    enabled: true,
+
+                    draw: (sk) => {
+                        if (!this.isCursorInbounds()) { return }
+                        this.drawCursor(sk)
+                    },
+
+                    mousePressed: (cmd) => {
+                        let [x, y] = this.getMouseCoords()
+
+                        let coord = `${x},${y}`
+
+                        let tile = this.tiles[coord]
+
+                        if (tile) {
+                            this.settings.selectedLayer = tile[2]
+
+                            this.save()
+                        }
+                    },
+                },
+
+                {
+                    name: 'Select',
+                    icon: 'fa-crop-alt',
+                    command: 'S',
+
+                    draw: (sk) => {
+                    },
+
+                    keyPressed: (sk) => {
+                    },
+
+                    mousePressed: (cmd) => {
+                    },
+
+                    toolChanged: (sk) => {
+                    },
+                },
+
+                {
+                    name: 'Line Stitch',
+                    icon: 'fa-slash',
+                    command: 'L',
+                    enabled: false,
+
+                    draw: (sk) => {
+                        if (!this.isCursorInbounds(false)) { return }
+
+                        let [mx, my] = this.getMouseCoords()
+
+                        let tilesize = this.settings.tilesize
+
+                        this.templine = this.templine || []
+
+                        sk.noCursor()
+                        sk.stroke(this.layers[this.settings.selectedLayer].color)
+                        sk.strokeWeight(6)
+                        sk.point(mx * tilesize, my * tilesize)
+
+                        if (this.templine.length > 0) {
+                            let [x1, y1] = this.templine
+
+                            sk.strokeWeight(3)
+                            sk.stroke(this.layers[this.settings.selectedLayer].color)
+                            sk.line(x1 * tilesize, y1 * tilesize, mx * tilesize, my * tilesize)
+                        }
+                    },
+
+                    keyPressed: (key) => {
+                        if (key === `Escape`) {
+                            this.templine = []
+                            return false
+                        }
+                    },
+
+                    mousePressed: (cmd) => {
+                        let [x, y] = this.getMouseCoords()
+
+                        this.templine = this.templine || []
+
+                        this.templine.push(x, y)
+
+                        if (this.templine.length >= 4) {
+                            this.lines.push([...this.templine, this.settings.selectedLayer])
+
+                            this.templine = []
+                            this.templine.push(x,y)
+
+                            this.save()
+                        }
+                    },
+
+                    toolChanged: () => {
+                        this.templine = []
+                    },
+                },
+            ],
+
         }
     },
 
@@ -220,7 +464,6 @@ var app = new Vue({
 
 
         setup(sk) {
-
             this.sketch = sk
             sk.createCanvas(10,10)
             sk.frameRate(this.framerate)
@@ -228,22 +471,13 @@ var app = new Vue({
             sk.canvas.style.borderColor = this.settings.gridLineColor
 
             this.adjustGrid(sk)
-
-            // document.addEventListener('contextmenu', event => {
-            //     if (event.target.classList.contains('p5Canvas')) {
-            //         event.preventDefault()
-            //         event.stopPropagation()
-            //     }
-            // });
-
-            // setupEventBindings(this)
         },
 
 
         draw(sk) {
             sk.clear()
-            sk.background('#ffffff')
-
+            sk.background(WHITE)
+            sk.cursor()
             sk.translate(this.origin, this.origin)
 
             this.drawTiles(sk)
@@ -254,7 +488,10 @@ var app = new Vue({
 
             this.drawDebug(sk)
 
-            this.drawCursor(sk)
+            // this.drawRuler(sk)
+            if (this.activeTool?.draw) {
+                this.activeTool.draw(sk)
+            }
 
             this.drawCenterMarker(sk)
         },
@@ -262,10 +499,7 @@ var app = new Vue({
 
         windowresized(sk) {
 
-
             this.adjustGrid(sk)
-
-
 
             // sk = sk ? sk : this.sketch
             // sk?.resizeCanvas(this.settings.gridWidth * this.settings.tilesize, this.settings.gridHeight * this.settings.tilesize)
@@ -276,11 +510,11 @@ var app = new Vue({
 
 
         keypressed(sk) {
-
             if (sk.isComposing || sk.keyCode === 229) {
                 return
             }
 
+            let res = null
             let key = []
 
             sk.keyIsDown(sk.CONTROL) ? key.push('ctrl') : null
@@ -291,96 +525,52 @@ var app = new Vue({
 
             key = key.join('+')
 
-            // console.debug('keydown event', sk, key)
+            console.debug('keydown event', key)
 
             if (this.actions[key]) {
-                this.actions[key]()
-                return false
+                res = this.actions[key]()
+                if (res === false) { return false }
             }
-
 
             let tool = this.tools.find(el => sk.key === el.command.toLowerCase() ? el : null)
 
-            if (tool) { this.selectedTool = tool.name }
+            this.changeActiveTool(tool)
 
-
-
-            tool = this.tools.find(el => el.name === this.selectedTool)
-
-            if (tool?.name === TOOL_LINE_STITCH) {
-
-                // TODO: figure out more convient/less spaghetti way of cancelling tool actions
-                if (`Escape|${tool.command}`.includes(key)) {
-
-                    // if already drawing a line, cancel the line
-                    if (this?.templine?.length === 2){
-                        this.templine = null
-                        return false
-                    }
-
-                }
-
+            if (this.activeTool?.keyPressed) {
+                res = this.activeTool?.keyPressed(key)
+                if (res === false) { return false }
             }
-
         },
 
 
         mousepressed(sk) {
 
-            let [x, y] = this.getMouseCoords()
+            let command = []
 
-            let coord = `${x},${y}`
+            sk.keyIsDown(sk.CONTROL) ? command.push('ctrl') : null
+            sk.keyIsDown(sk.SHIFT) ? command.push('shift') : null
+            sk.keyIsDown(sk.ALT) ? command.push('alt') : null
 
-            let LEFT_CLICK  = sk.mouseButton === 'left'
-            let RIGHT_CLICK = sk.mouseButton === 'right'
+            command.push(`mouse_${sk.mouseButton}`)
 
-            if (!this.isClickInbounds()) { return }
+            command = command.join('+')
 
-
-            if (this.selectedTool === TOOL_BRUSH && LEFT_CLICK) {
-                this.tiles[coord] = [x, y, this.settings.selectedLayer]
+            if (this.activeTool?.mousePressed) {
+                let res = this.activeTool.mousePressed(command)
+                if (res === false) { return res }
             }
-
-            else if (this.selectedTool === TOOL_ERASER && LEFT_CLICK) {
-                if (this.tiles[coord]) {
-                    delete this.tiles[coord]
-                }
-            }
-
-            else if (this.selectedTool === TOOL_EYEDROPPER && LEFT_CLICK) {
-                let tile = this.tiles[coord]
-
-                if (tile) {
-                    this.settings.selectedLayer = tile[2]
-                }
-            }
-
-            // else if (this.selectedTool === TOOL_PEN && LEFT_CLICK) {
-            //     let templine = this.templine || []
-            // }
-
-            else if (this.selectedTool === TOOL_LINE_STITCH && LEFT_CLICK) {
-                this.templine = this.templine || []
-
-                this.templine.push(x, y)
-
-                if (this.templine.length >= 4) {
-                    this.lines.push([...this.templine, this.settings.selectedLayer])
-                    this.templine = []
-                    this.templine.push(x,y)
-                }
-            }
-
-
-            // else if (this.selectedTool === TOOL_LINE_STITCH && RIGHT_CLICK) {
-            // }
-
-            this.save()
         },
 
 
         mousemoved(sk) {
         },
+
+
+
+
+        // ========================================
+        //  DRAW METHODS
+        // ========================================
 
 
         drawTiles(sk) {
@@ -397,8 +587,8 @@ var app = new Vue({
             sk.strokeWeight(2)
             sk.stroke(this.settings.gridLineColor)
             sk.fill(this.settings.gridBackgroundColor)
-            // sk.rect(0, 0, this.settings.gridWidth * this.settings.tilesize, this.settings.gridHeight * this.settings.tilesize)
             sk.rect(xmin, ymin, xmax, ymax)
+
 
             Object.keys(this.tiles).forEach((key, el) => {
 
@@ -435,73 +625,15 @@ var app = new Vue({
 
             })
 
-
-            if (this.templine) {
-                let [x1, y1] = this.templine
-                let [x2, y2] = this.getMouseCoords()
-
-                sk.stroke(this.layers[this.settings.selectedLayer].color)
-                sk.line(x1 * tilesize, y1 * tilesize, x2 * tilesize, y2 * tilesize)
-            }
-
         },
 
 
-        /**
-         * Gets the mouse coordinates relative to grid row/columns
-         *
-         * @return     {Array}  The mouse coordinates.
-         */
-        getMouseCoords() {
+
+
+        drawTriangle(x, y, size, dir, color=BLACK) {
             let sk = this.sketch
 
-            let x = Math.floor(sk.mouseX / this.settings.tilesize) - this.gridMarginScale
-            let y = Math.floor(sk.mouseY / this.settings.tilesize) - this.gridMarginScale
-
-            // console.debug('getMouseCoords', x, y, this.origin)
-
-            return [x,y]
-        },
-
-
-        isClickInbounds() {
-            let [mx, my]    = this.getMouseCoords()
-            let [xmin, ymin, xmax, ymax] = this.getDesignCoords()
-
-            return xmin <= mx && mx <= xmax && ymin <= my && my <= ymax
-        },
-
-
-        getDesignPixelDimensions(sk) {
-            return [
-                0,
-                0,
-                this.settings.gridWidth * this.settings.tilesize,
-                this.settings.gridHeight * this.settings.tilesize,
-            ]
-        },
-
-
-        /**
-         * Gets the design grid coordinates.
-         *
-         * @return  Array<[xmin, ymin, xmax, ymax]>  The design grid coordinates.
-         *
-         */
-        getDesignCoords() {
-            return [
-                0,
-                0,
-                this.settings.gridWidth - 1,
-                this.settings.gridHeight - 1,
-            ]
-        },
-
-
-        drawTriangle(x, y, size, dir, color='#000000') {
-            let sk = this.sketch
-
-            dir = `${dir}`.trim().toLowerCase()
+            dir = new String(dir).trim().toLowerCase()
 
             // test if dir is valid
             if (!'up|right|down|left'.includes(dir)) { return }
@@ -524,18 +656,13 @@ var app = new Vue({
                     x + size ,      y + size / 2
                 )
 
-
             // draw up/down
             } else {
-
-                // draw triangle markers
                 sk.triangle(
                     x,              y,
                     x + size,       y,
                     x + size / 2,   y + size
                 )
-
-
             }
 
 
@@ -646,7 +773,7 @@ var app = new Vue({
 
             // sk.textAlign(sk.CENTER)
             // sk.fill(this.settings.gridTextColor)
-            // sk.text(`${this.selectedTool || ''} | ${x}, ${y}`, this.settings.gridWidth / 4 * tilesize, this.settings.gridHeight * tilesize + 30)
+            // sk.text(`${this.activeTool?.name || ''} | ${x}, ${y}`, this.settings.gridWidth / 4 * tilesize, this.settings.gridHeight * tilesize + 30)
         },
 
 
@@ -660,38 +787,25 @@ var app = new Vue({
             let x = origin + Math.floor(sk.mouseX / tilesize) * tilesize
             let y = origin + Math.floor(sk.mouseY / tilesize) * tilesize
 
-            sk.cursor()
 
 
             // draw square cursor
-            if (`${TOOL_BRUSH}|${TOOL_ERASER}|${TOOL_EYEDROPPER}`.includes(this.selectedTool)) {
 
-                sk.noCursor()
+            sk.noCursor()
 
-                if (this.settings.showCursorMarkers) {
-                    sk.fill('rgba(0,0,0,0.15)')
-                    sk.strokeWeight(2)
+            if (this.settings.showCursorMarkers) {
+                sk.fill('rgba(0,0,0,0.15)')
+                sk.strokeWeight(2)
 
-                    sk.square(x, 0, tilesize)
-                    sk.square(0, y, tilesize)
-                    sk.square(x, (height - 1) * tilesize,    tilesize)
-                    sk.square((width - 1) * tilesize,   y,                 tilesize)
-                }
-
-                sk.fill(0,0,0,0)
-                sk.stroke(this.layers[this.settings.selectedLayer].color)
-                sk.square(x, y, tilesize)
+                sk.square(x, 0, tilesize)
+                sk.square(0, y, tilesize)
+                sk.square(x, (height - 1) * tilesize,    tilesize)
+                sk.square((width - 1) * tilesize,   y,                 tilesize)
             }
 
-
-            // draw point cursor
-            if (`${TOOL_LINE_STITCH}`.includes(this.selectedTool)) {
-                sk.noCursor()
-                sk.stroke(this.layers[this.settings.selectedLayer].color)
-                sk.strokeWeight(6)
-                sk.point(x, y)
-            }
-
+            sk.fill(0,0,0,0)
+            sk.stroke(this.layers[this.settings.selectedLayer].color)
+            sk.square(x, y, tilesize)
         },
 
 
@@ -742,6 +856,88 @@ var app = new Vue({
                 sk.text(el, 10, ++index * fontSize + 10)
             })
         },
+
+
+
+
+
+        // ========================================
+        //  Coordinate helpers
+        // ========================================
+
+
+        /**
+         * Gets the mouse coordinates relative to grid row/columns
+         *
+         * @return     {Array}  The mouse coordinates.
+         */
+        getMouseCoords() {
+            let sk = this.sketch
+
+            let x = Math.floor(sk.mouseX / this.settings.tilesize) - this.gridMarginScale
+            let y = Math.floor(sk.mouseY / this.settings.tilesize) - this.gridMarginScale
+
+            // console.debug('getMouseCoords', x, y, this.origin)
+
+            return [x,y]
+        },
+
+
+        isCursorInbounds(inclusive = true) {
+            let [mx, my]    = this.getMouseCoords()
+            let [xmin, ymin, xmax, ymax] = this.getDesignCoords(inclusive)
+
+            return xmin <= mx && mx <= xmax && ymin <= my && my <= ymax
+        },
+
+
+        getDesignPixelDimensions(sk) {
+            return [
+                0,
+                0,
+                this.settings.gridWidth * this.settings.tilesize,
+                this.settings.gridHeight * this.settings.tilesize,
+            ]
+        },
+
+
+        /**
+         * Gets the design grid coordinates.
+         *
+         * @return  Array<[xmin, ymin, xmax, ymax]>  The design grid coordinates.
+         *
+         */
+        getDesignCoords(inclusive = true) {
+            let width   = this.settings.gridWidth
+            let height  = this.settings.gridHeight
+
+            if (!!!inclusive) {
+                width -= 1
+                height -= 1
+            }
+
+            return [ 0, 0, width, height ]
+        },
+
+
+
+        changeActiveTool(tool) {
+
+            let isSameTool = tool?.name === this.activeTool?.name
+            let isToolActive = tool?.isActive
+
+            if (!tool || isSameTool || isToolActive) { return }
+
+            console.info('tool changed to', tool.name)
+
+            // allow currently selected tool to cleanup after itself as needed
+            if (this.activeTool?.toolChanged) {
+                this.activeTool?.toolChanged()
+            }
+
+            this.activeTool = tool
+        },
+
 
 
 
@@ -808,6 +1004,8 @@ var app = new Vue({
                 this.tiles = {}
                 this.lines = []
             }
+
+            this.save()
         },
 
 
@@ -1170,6 +1368,16 @@ function xyToIndex(x, y, width, height) {
 }
 
 
+function deltaXY(x1, y1, x2, y2) {
+    let dx = Math.abs(x1 - x2) + 1
+    let dy = Math.abs(y1 - y2) + 1
+
+    let dl = Math.floor(Math.hypot(dx, dy))
+
+    return [dx, dy, dl]
+}
+
+
 function randomItem(list) {
     return list[Math.floor(Math.random() * list.length)]
 }
@@ -1213,9 +1421,26 @@ function getContrastYIQ(hexcolor){
     // Get YIQ ratio
     var yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
 
-    return (yiq >= 128) ? '#000000' : '#ffffff';
+    return (yiq >= 128) ? BLACK : WHITE;
 }
 
 function isArray(array) {
     return Array.isArray(array)
 }
+
+
+function isString(val) {
+    return typeof(val) === 'string'
+}
+
+function isEmpty(val) {
+    if (val === null) { return true }
+
+    if (isString(val) || isArray(val)) {
+        return val.length > 0
+    }
+
+    return false
+}
+
+

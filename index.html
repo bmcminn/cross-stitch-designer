@@ -1,57 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<title>Cross Stitch Designer</title>
-	<meta name="description" content="My official cross stitch design app, made with love <3 and built with P5.js">
-	<meta name="author" content="Brandtley McMinn <https://github.com/bmcminn/cross-stitch-designer>">
-	<meta name="viewport" content="width=device-width">
-	<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" /> -->
+    <meta charset="UTF-8">
+    <title>Cross Stitch Designer</title>
+    <meta name="description" content="My official cross stitch design app, made with love <3 and built with P5.js">
+    <meta name="author" content="Brandtley McMinn <https://github.com/bmcminn/cross-stitch-designer>">
+    <meta name="viewport" content="width=device-width">
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" /> -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/fontawesome.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/solid.min.css" />
-	<link rel="stylesheet" href="assets/reset.css">
-	<link rel="stylesheet" href="assets/app.css">
-	<style type="text/css">
-		body.no-js #app {
-			display: none;
-		}
-	</style>
+    <link rel="stylesheet" href="assets/reset.css">
+    <link rel="stylesheet" href="assets/app.css">
+    <style type="text/css">
+        body.no-js #app {
+            display: none;
+        }
+    </style>
 </head>
 <body class="no-js">
 
-	<noscript>
-		This app requires JavaScript to work.
-	</noscript>
+    <noscript>
+        This app requires JavaScript to work.
+    </noscript>
 
-	<main id="app">
+
+    <main id="app">
 
         <div class="design-view">
-
             <header id="design-information" class="text-center design-info">
                 <h1>{{ design.title }}</h1>
 
                 <div>
-                Copyright &copy; {{ design.copyright|datetime('YYYY') }} {{ design.owner }}
+                    Copyright &copy; {{ design.copyright|datetime('YYYY') }} {{ design.owner }}
                 </div>
 
                 <div>
-                Count Size: {{ settings.gridWidth }} x {{ settings.gridHeight }}
-                &nbsp;&nbsp;&nbsp;&nbsp;
-                Finished Size: {{ design.widthInches|round }}" x {{ design.heightInches|round }}"
+                    Count Size: {{ settings.gridWidth }} x {{ settings.gridHeight }}
+                    &nbsp;&nbsp;&nbsp;&nbsp;
+                    Finished Size: {{ design.widthInches|round }}" x {{ design.heightInches|round }}"
                 </div>
-
             </header>
 
 
-    		<vue-p5
+            <vue-p5
                 :class="{ 'draw-centered': designViewDrawCentered }"
-    			@setup="setup"
-    			@draw="draw"
-    			@keypressed="keypressed"
+                @setup="setup"
+                @draw="draw"
+                @keypressed="keypressed"
                 @mousemoved="mousemoved"
                 @mousepressed="mousepressed"
-    			@windowresized="windowresized"
-    		></vue-p5>
+                @windowresized="windowresized"
+            ></vue-p5>
 
 
             <ul class="print-only">
@@ -87,24 +86,19 @@
         </div>
 
 
-
-
-
-		<div class="controls controls--sidebar no-print">
-
-
+        <div class="controls controls--sidebar no-print">
 
             <details id="document-configuration">
                 <summary>Document Information</summary>
-    			<div>
-    				<label for="design.title">Design Title</label>
-    				<input type="text"
+                <div>
+                    <label for="design.title">Design Title</label>
+                    <input type="text"
                         class="full-width"
-    					id="design.title"
-    					v-model="design.title"
-    					@change="save()"
-    				/>
-    			</div>
+                        id="design.title"
+                        v-model="design.title"
+                        @change="save()"
+                    />
+                </div>
 
 
                 <div>
@@ -140,16 +134,16 @@
                     />
                 </div>
 
-    			<div class="flex">
-    				<label for="settings.gridHeight">Height</label>
-    				<input type="number"
-    					id="settings.gridHeight"
-    					v-model="settings.gridHeight"
-    					@change="adjustGrid()"
-    					:min="settings.gridSizeMin"
-    					:max="settings.gridSizeMax"
-    				/>
-    			</div>
+                <div class="flex">
+                    <label for="settings.gridHeight">Height</label>
+                    <input type="number"
+                        id="settings.gridHeight"
+                        v-model="settings.gridHeight"
+                        @change="adjustGrid()"
+                        :min="settings.gridSizeMin"
+                        :max="settings.gridSizeMax"
+                    />
+                </div>
 
 
                 <div class="flex">
@@ -227,13 +221,12 @@
 
 
             <div class="tools">
-
                 <button v-for="tool in tools"
                     v-if="tool.enabled"
                     :key="tool.name"
-                    @click="selectedTool = tool.name"
                     :title="`${tool.name}` + (tool.command ? ` (${tool.command})` : '')"
-                    :selected="selectedTool === tool.name"
+                    :selected="activeTool?.name === tool.name"
+                    @click="changeActiveTool(tool)"
                 >
                     <i :class="[ 'fas', tool.icon, 'fa-fw' ]"></i>
                     <span class="sr-only">{{ tool.name }}</span>
@@ -241,9 +234,8 @@
             </div>
 
 
-			<div id="layers-panel">
+            <div id="layers-panel">
                 <h3>Layers</h3>
-
 
                 <button @click="newLayer">
                     New layer <small class="fas fa-fw fa-plus"></small>
@@ -253,75 +245,71 @@
                     Clear design <small class="fas fa-fw fa-trash"></small>
                 </button>
 
-    			<ul class="controls controls--layers">
-    				<li
-    					v-for="(layer, layerIndex) in layers"
-    					:key="layerIndex"
-    					@click="selectLayer(layerIndex)"
-    					class="flex flex-row flex-center control--layer"
+                <ul class="controls controls--layers">
+                    <li
+                        v-for="(layer, layerIndex) in layers"
+                        :key="layerIndex"
                         :selected="settings.selectedLayer === layerIndex"
-    				>
+                        @click="selectLayer(layerIndex)"
+                        class="flex flex-row flex-center control--layer"
+                    >
+                        <input class="layer-color"
+                            type="color"
+                            v-model="layer.color"
+                            @change="save()"
+                            :style="{
+                                'background-color': layer.color
+                            }"
+                        />
 
-    					<input class="layer-color"
-    						type="color"
-    						v-model="layer.color"
-    						@change="save()"
-    						:style="{
-    							'background-color': layer.color
-    						}"
-    					/>
+                        <div class="flex-grow layer--name">
+                            <!-- // TODO: figure out a clickaway strategy -->
+                            <label v-show="layer.editingtitle == false"
+                                class="full-width"
+                                @dblclick="layer.editingtitle=true"
+                            >{{ layer.title }}</label>
 
-    			      	<div class="flex-grow layer--name">
-    			      		<!-- // TODO: figure out a clickaway strategy -->
-    			      	  	<label v-show="layer.editingtitle == false"
-    			      	  		class="full-width"
-    			      	  		@dblclick="layer.editingtitle=true"
-    			      	  	>{{ layer.title }}</label>
-
-    				      	<input v-show="layer.editingtitle == true"
-    				      		v-model="layer.title"
-    				      		v-on:blur="layer.editingtitle=false; $emit('update'); save()"
-    				      		@keyup.enter="layer.editingtitle=false; $emit('update'); save()"
-    				      		@keyup.esc="layer.editingtitle=false; $emit('update'); save()"
-    				      	/>
-    			      	</div>
-
+                            <input v-show="layer.editingtitle == true"
+                                v-model="layer.title"
+                                @blur="layer.editingtitle=false; $emit('update'); save()"
+                                @keyup.enter="layer.editingtitle=false; $emit('update'); save()"
+                                @keyup.esc="layer.editingtitle=false; $emit('update'); save()"
+                            />
+                        </div>
 
                         <!--
-    					<button @click="moveLayer(layerIndex, -1)"
-    						:disabled="layerIndex === 0"
-    					>
-    						<span class="fas fa-fw fa-angle-up"></span>
-    					</button>
-
-    					<button @click="moveLayer(layerIndex, 1)"
-    						:disabled="layerIndex === layers.length-1"
-    					>
-    						<span class="fas fa-fw fa-angle-down"></span>
-    					</button>
+                        <button @click="moveLayer(layerIndex, -1)"
+                            :disabled="layerIndex === 0"
+                        >
+                            <span class="fas fa-fw fa-angle-up"></span>
+                        </button>
+                        <button @click="moveLayer(layerIndex, 1)"
+                            :disabled="layerIndex === layers.length-1"
+                        >
+                            <span class="fas fa-fw fa-angle-down"></span>
+                        </button>
                          -->
-
 
                         <button @click="deleteLayer(layerIndex)">
                             <span class="fas fa-fw fa-trash"></span>
                         </button>
-    				</li>
-    			</ul>
+                    </li>
+                </ul>
             </div>
 
-		</div>
-	</main>
+        </div>
+    </main>
 
 
-	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js" integrity="sha512-WIklPM6qPCIp6d3fSSr90j+1unQHUOoWDS4sdTiR8gxUTnyZ8S2Mr8e10sKKJ/bhJgpAa/qG068RDkg6fIlNFA==" crossorigin="anonymous"></script> -->
-	<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
-	<!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
-	<!-- <script src="https://unpkg.com/lz-string@1.4.4/libs/lz-string.min.js"></script> -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js" integrity="sha512-WIklPM6qPCIp6d3fSSr90j+1unQHUOoWDS4sdTiR8gxUTnyZ8S2Mr8e10sKKJ/bhJgpAa/qG068RDkg6fIlNFA==" crossorigin="anonymous"></script> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
+    <!-- <script src="https://unpkg.com/lz-string@1.4.4/libs/lz-string.min.js"></script> -->
     <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js"></script>
-	<!-- <script src="https://unpkg.com/lzwcompress@0.5.22/lzwCompress.js"></script> -->
-	<script src="https://unpkg.com/vue@2.6.12/dist/vue.min.js"></script>
-	<script src="https://unpkg.com/vue-p5"></script>
-	<script src="assets/app.js"></script>
+    <!-- <script src="https://unpkg.com/lzwcompress@0.5.22/lzwCompress.js"></script> -->
+    <script src="https://unpkg.com/vue@2.6.12/dist/vue.min.js"></script>
+    <script src="https://unpkg.com/vue-p5"></script>
+    <script src="assets/app.js"></script>
 
 </body>
 </html>
