@@ -106,14 +106,14 @@ small,
 }
 
 
-.layer--name label,
-.layer--name input {
+.color--name label,
+.color--name input {
 	padding: 0.2em;
 	border: 1px solid transparent;
 
 }
 
-.layer--name input {
+.color--name input {
     width: 100%;
 }
 
@@ -181,28 +181,28 @@ small,
 	padding: 0;
 }
 
-.controls--layers {
+.controls--colors {
 	margin: 1em 0;
 	padding: 0;
 	position: relative;
 	width: 100%;
 }
 
-.controls--layers li {
+.controls--colors li {
 	display: flex;
 	flex-direction: row;
 }
 
-.controls--layers button {
+.controls--colors button {
 	font-size: 0.7em;
 }
 
 
-.control--layer {
+.control--color {
     justify-content: space-between;
     cursor: pointer;
 }
-.control--layer[selected] {
+.control--color[selected] {
     background-color: #c6e6ff;
 }
 

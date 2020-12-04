@@ -48,33 +48,21 @@ var app = new Vue({
             zoomMax: 5,
             zoomLevel: 3,
 
-            grid: [],
-
             gridCrossSize: 5,
             gridMarginScale: 4,
 
             gridCenterX: 0,
             gridCenterY: 0,
 
-            offsetX: 0,
-            offsetY: 0,
-
-            prevOffsetX: 0,
-            prevOffsetY: 0,
-
             designViewDrawCentered: false,
 
-            origin: 25,
+            originOffset: 0,
             framerate: 20,
             isScrolling: false,
-            selectedLayer: 0,
-
 
             currentTool: 'linestitch',
 
-
             ruler: [],
-
 
             tiles: {},
             lines: [],
@@ -88,8 +76,8 @@ var app = new Vue({
 
             actions: {
                 'F3':   () => { this.DEBUG_MODE = !this.DEBUG_MODE },
-                ']':    () => { this.nextLayer(1) },
-                '[':    () => { this.nextLayer(-1) },
+                ']':    () => { this.nextColor(1) },
+                '[':    () => { this.nextColor(-1) },
                 '+':    () => { this.zoomGrid(1) },
                 '-':    () => { this.zoomGrid(-1) },
 
@@ -132,7 +120,7 @@ var app = new Vue({
                 tilesize: 12,
                 tilesizeMin: 8,
                 tilesizeMax: 20,
-                selectedLayer: 0,
+                selectedColor: 0,
                 showGrid: true,
                 showCursorMarkers: true,
                 showGridNumbers: true,
@@ -140,7 +128,7 @@ var app = new Vue({
             },
 
 
-            layers: [
+            colors: [
                 {
                     title: 'green',
                     color: '#5fd12e',
@@ -175,7 +163,7 @@ var app = new Vue({
                         let cursorSize  = 10
                         let ruler       = this.ruler
                         let rulerColor  = DEBUG_COLOR
-                        let tileCenter  = Math.floor(tilesize / 2)
+                        let tileCenter  = Math.floor(this.settings.tilesize / 2)
                         let tilesize    = this.settings.tilesize
 
                         sk.stroke(rulerColor)
@@ -190,8 +178,8 @@ var app = new Vue({
                         let [x1, y1, x2, y2] = ruler
 
                         // if x2,y2 is undefined, use mouse coords
-                        x2 = x2 || x
-                        y2 = y2 || y
+                        x2 = x2 ?? x
+                        y2 = y2 ?? y
 
                         let [dx, dy] = deltaXY(x1, y1, x2, y2)
 
@@ -220,19 +208,19 @@ var app = new Vue({
                     },
 
                     mousePressed: (cmd) => {
-                        if (!this.isCursorInbounds(true)) { return }
+                        if (!this.isCursorInbounds(false)) { return }
 
                         let [x, y] = this.getMouseCoords()
 
-                        let coord = `${x},${y}`
-
-                        this.ruler = this.ruler || []
+                        this.ruler = this.ruler ?? []
                         this.ruler.push(x,y)
 
                         if (this.ruler.length > 4) {
                             this.ruler = []
                             this.ruler.push(x,y)
                         }
+
+
                     },
 
                     toolChanged: () => {
@@ -290,7 +278,7 @@ var app = new Vue({
 
                         let coord = `${x},${y}`
 
-                        this.tiles[coord] = [x, y, this.settings.selectedLayer]
+                        this.tiles[coord] = [x, y, this.settings.selectedColor]
 
                         this.save()
 
@@ -318,7 +306,7 @@ var app = new Vue({
                     },
 
                     mousePressed: (cmd) => {
-                        // let templine = this.templine || []
+                        // let templine = this.templine ?? []
 
                         this.save()
                     },
@@ -364,7 +352,7 @@ var app = new Vue({
                         let tile = this.tiles[coord]
 
                         if (tile) {
-                            this.settings.selectedLayer = tile[2]
+                            this.settings.selectedColor = tile[2]
 
                             this.save()
                         }
@@ -402,10 +390,10 @@ var app = new Vue({
 
                         let tilesize = this.settings.tilesize
 
-                        this.templine = this.templine || []
+                        this.templine = this.templine ?? []
 
                         sk.noCursor()
-                        sk.stroke(this.layers[this.settings.selectedLayer].color)
+                        sk.stroke(this.colors[this.settings.selectedColor].color)
                         sk.strokeWeight(6)
                         sk.point(mx * tilesize, my * tilesize)
 
@@ -413,7 +401,7 @@ var app = new Vue({
                             let [x1, y1] = this.templine
 
                             sk.strokeWeight(3)
-                            sk.stroke(this.layers[this.settings.selectedLayer].color)
+                            sk.stroke(this.colors[this.settings.selectedColor].color)
                             sk.line(x1 * tilesize, y1 * tilesize, mx * tilesize, my * tilesize)
                         }
                     },
@@ -428,12 +416,12 @@ var app = new Vue({
                     mousePressed: (cmd) => {
                         let [x, y] = this.getMouseCoords()
 
-                        this.templine = this.templine || []
+                        this.templine = this.templine ?? []
 
                         this.templine.push(x, y)
 
                         if (this.templine.length >= 4) {
-                            this.lines.push([...this.templine, this.settings.selectedLayer])
+                            this.lines.push([...this.templine, this.settings.selectedColor])
 
                             this.templine = []
                             this.templine.push(x,y)
@@ -462,7 +450,6 @@ var app = new Vue({
         //  P5 METHODS
         // ==============================
 
-
         setup(sk) {
             this.sketch = sk
             sk.createCanvas(10,10)
@@ -478,7 +465,7 @@ var app = new Vue({
             sk.clear()
             sk.background(WHITE)
             sk.cursor()
-            sk.translate(this.origin, this.origin)
+            sk.translate(this.originOffset, this.originOffset)
 
             this.drawTiles(sk)
 
@@ -498,14 +485,7 @@ var app = new Vue({
 
 
         windowresized(sk) {
-
             this.adjustGrid(sk)
-
-            // sk = sk ? sk : this.sketch
-            // sk?.resizeCanvas(this.settings.gridWidth * this.settings.tilesize, this.settings.gridHeight * this.settings.tilesize)
-
-            // sk.resizeCanvas(window.innerWidth - this.origin, window.innerHeight - this.origin)
-            // this.recalculateTilesize()
         },
 
 
@@ -566,12 +546,9 @@ var app = new Vue({
         },
 
 
-
-
         // ========================================
         //  DRAW METHODS
         // ========================================
-
 
         drawTiles(sk) {
 
@@ -579,8 +556,8 @@ var app = new Vue({
 
             let tilesize = this.settings.tilesize
 
-            let origin = -this.origin
-            // sk.translate(this.origin, this.origin)
+            let origin = -this.originOffset
+            // sk.translate(this.originOffset, this.originOffset)
 
             let [xmin, ymin, xmax, ymax] = this.getDesignPixelDimensions()
 
@@ -599,12 +576,10 @@ var app = new Vue({
                 if (x < 0 || y < 0) { return }
 
                 sk.strokeWeight(0)
-
-                sk.fill(this.layers[colorIndex].color)
+                sk.fill(this.colors[colorIndex].color)
                 sk.square(Number(x) * tilesize, Number(y) * tilesize, tilesize)
 
             }, this)
-
         },
 
 
@@ -620,14 +595,11 @@ var app = new Vue({
 
                 let [x1, y1, x2, y2, colorIndex] = el
 
-                sk.stroke(this.layers[colorIndex].color)
+                sk.stroke(this.colors[colorIndex].color)
                 sk.line(x1 * tilesize, y1 * tilesize, x2 * tilesize, y2 * tilesize)
 
             })
-
         },
-
-
 
 
         drawTriangle(x, y, size, dir, color=BLACK) {
@@ -664,8 +636,6 @@ var app = new Vue({
                     x + size / 2,   y + size
                 )
             }
-
-
         },
 
 
@@ -779,7 +749,7 @@ var app = new Vue({
 
         drawCursor(sk) {
 
-            let origin      = 0 - this.origin
+            let origin      = 0 - this.originOffset
             let tilesize    = this.settings.tilesize
             let width       = this.settings.gridWidth
             let height      = this.settings.gridHeight
@@ -804,7 +774,7 @@ var app = new Vue({
             }
 
             sk.fill(0,0,0,0)
-            sk.stroke(this.layers[this.settings.selectedLayer].color)
+            sk.stroke(this.colors[this.settings.selectedColor].color)
             sk.square(x, y, tilesize)
         },
 
@@ -825,7 +795,6 @@ var app = new Vue({
         },
 
 
-
         drawDebug(sk) {
             if (!this.DEBUG_MODE) { return }
 
@@ -835,12 +804,6 @@ var app = new Vue({
                 `Framerate:           ${sk.deltaTime}FPS`,
                 `MouseX:              ${sk.mouseX}`,
                 `MouseY:              ${sk.mouseY}`,
-                `X offset:            ${this.offsetX}`,
-                `Y offset:            ${this.offsetY}`,
-                // `cells:               ${this.tiles.length}`,
-                // `ViewOffset + MouseX: ${this.offsetX + sk.mouseX}`,
-                // `ViewOffset + MouseY: ${this.offsetY + sk.mouseY}`,
-                // `Zoom Level:          ${this.zoomLevel}`,
             ]
 
             let fontSize = 14
@@ -858,13 +821,9 @@ var app = new Vue({
         },
 
 
-
-
-
         // ========================================
         //  Coordinate helpers
         // ========================================
-
 
         /**
          * Gets the mouse coordinates relative to grid row/columns
@@ -877,7 +836,7 @@ var app = new Vue({
             let x = Math.floor(sk.mouseX / this.settings.tilesize) - this.gridMarginScale
             let y = Math.floor(sk.mouseY / this.settings.tilesize) - this.gridMarginScale
 
-            // console.debug('getMouseCoords', x, y, this.origin)
+            // console.debug('getMouseCoords', x, y, this.originOffset)
 
             return [x,y]
         },
@@ -886,6 +845,8 @@ var app = new Vue({
         isCursorInbounds(inclusive = true) {
             let [mx, my]    = this.getMouseCoords()
             let [xmin, ymin, xmax, ymax] = this.getDesignCoords(inclusive)
+
+            console.debug('isCursorInbounds', mx, my, xmin, ymin, xmax, ymax)
 
             return xmin <= mx && mx <= xmax && ymin <= my && my <= ymax
         },
@@ -920,7 +881,6 @@ var app = new Vue({
         },
 
 
-
         changeActiveTool(tool) {
 
             let isSameTool = tool?.name === this.activeTool?.name
@@ -939,19 +899,17 @@ var app = new Vue({
         },
 
 
-
-
         // ==============================
         //  APP UI METHODS
         // ==============================
 
-        newLayer() {
+        newColor() {
             let hexColor = randomHex()
 
-            this.layers.unshift({
-                title:  `Layer ${this.layers.length}`,
+            this.colors.unshift({
+                title:  `Layer ${this.colors.length}`,
                 color:  hexColor, // '#5fd12e',
-                id:     parseInt(new Date().getTime().toString().substr(-6), 10) + this.layers.length * 100,
+                id:     parseInt(new Date().getTime().toString().substr(-6), 10) + this.colors.length * 100,
                 // threadCount:  2,
                 // stitchType:   1,
                 editingtitle: false,
@@ -965,20 +923,20 @@ var app = new Vue({
 
 
         deleteLayer(index) {
-            this.layers.splice(index, 1)
+            this.colors.splice(index, 1)
             this.save()
         },
 
 
-        selectLayer(index) {
-            this.settings.selectedLayer = index
+        selectColor(index) {
+            this.settings.selectedColor = index
             this.save()
         },
 
 
-        nextLayer(dir) {
-            this.settings.selectedLayer += dir
-            this.settings.selectedLayer = this.sketch.constrain(this.settings.selectedLayer, 0, this.layers.length -1)
+        nextColor(dir) {
+            this.settings.selectedColor += dir
+            this.settings.selectedColor = this.sketch.constrain(this.settings.selectedColor, 0, this.colors.length -1)
         },
 
 
@@ -1009,7 +967,6 @@ var app = new Vue({
         },
 
 
-
         setPageTitle(title) {
             document.title = `${title} - ${this.app.name}`
         },
@@ -1019,15 +976,15 @@ var app = new Vue({
 
             sk = sk ? sk : this.sketch
 
-            this.origin = this.settings.tilesize * this.gridMarginScale
-            // sk.translate(this.origin, this.origin)
+            this.originOffset = this.settings.tilesize * this.gridMarginScale
+            // sk.translate(this.originOffset, this.originOffset)
 
             // force rows and columns to numbers
             this.settings.gridHeight  = Number(this.settings.gridHeight)
             this.settings.gridWidth   = Number(this.settings.gridWidth)
 
             // resize canvas accordingly
-            let margin  = this.origin * 2
+            let margin  = this.originOffset * 2
             let width   = this.settings.gridWidth * this.settings.tilesize
             let height  = this.settings.gridHeight * this.settings.tilesize
 
@@ -1065,7 +1022,7 @@ var app = new Vue({
 
 
             let data = {
-                layers:     this.layers,
+                colors:     this.colors,
                 settings:   this.settings,
                 tiles:      this.tiles,
                 lines:      this.lines,
@@ -1102,7 +1059,7 @@ var app = new Vue({
 
             data = JSON.parse(data)
 
-            this.layers     = data.layers
+            this.colors     = data.colors
             this.tiles      = data.tiles
             this.lines      = data.lines
             this.settings   = Object.assign({}, this.settings, data.settings)
@@ -1115,7 +1072,6 @@ var app = new Vue({
             }
 
             this.setPageTitle(this.design.title)
-
         },
 
 
@@ -1132,7 +1088,6 @@ var app = new Vue({
 
         recalculateTilesize() {
             this.settings.tilesize = this.baseTilesize * this.zoomLevel // * (this.width / 1500)
-
         },
 
 
@@ -1150,20 +1105,10 @@ var app = new Vue({
         // },
 
 
-        // setTool(tool) {
-
-        // },
-
-
-        // addNewLayer() {
-
-        // },
-
-
         moveLayer(index, dir) {
-            let res = this.layers[index]
-            this.layers.splice(index, 1)
-            this.layers.splice(index + dir, 0, res)
+            let res = this.colors[index]
+            this.colors.splice(index, 1)
+            this.colors.splice(index + dir, 0, res)
 
             this.save()
         },
@@ -1195,106 +1140,6 @@ var app = new Vue({
         }
     }
 })
-
-
-
-// // ==============================
-// //   ACTIONS SETUP
-// // ==============================
-
-// // NOTE: actions are based on the concatenated event.keydown parameters in order ctrl+shift+alt+code
-// // EXAMPLE: 'NumpadAdd' is the '+' key on the numpad, 'shift+alt+KeyF'
-// const ACTIONS = {
-//     // '0':             () => { setTool(0) },
-//     // '1':             () => { setTool(1) },
-//     // '2':             () => { setTool(2) },
-//     'NumpadAdd':        () => { zoom(1) },
-//     'NumpadSubtract':   () => { zoom(-1) },
-//     'PageUp':           () => { zoom(1) },
-//     'PageDown':         () => { zoom(-1) },
-//     'F3':               () => { DEBUG_MODE = !DEBUG_MODE }
-// }
-
-
-// window.addEventListener('keydown', (e) => {
-
-//     if (e.isComposing || e.keyCode === 229) {
-//         return
-//     }
-
-//     let key = []
-
-//     e.ctrlKey   ? key.push('ctrl') : null
-//     e.shiftKey  ? key.push('shift') : null
-//     e.altKey    ? key.push('alt') : null
-
-//     key.push(e.code)
-
-//     key = key.join('+')
-
-//     console.debug('keydown event', key)
-
-//     if (ACTIONS[key]) { ACTIONS[key]() }
-// })
-
-
-
-// // ==============================
-// //   UI METHODS
-// // ==============================
-
-// // TODO: convert this over to native P5 mousePressed(), mouseDragged(), and mouseReleased() events
-
-// function setupEventBindings(ctx) {
-
-//     ctx = document.getElementById('defaultCanvas0')
-
-
-//     ctx.addEventListener('contextmenu', (e) => {
-//         e.preventDefault()
-//     })
-
-
-//     ctx.addEventListener('mousedown', (e) => {
-
-//         let isRightClick = e.button === 2
-
-//         if (isRightClick) {
-//             $view.offsetX = $view.prevOffsetX
-//             $view.offsetY = $view.prevOffsetY
-
-//             $view.isScrolling = true
-//         }
-
-//     })
-
-
-//     ctx.addEventListener('mousemove', (e) => {
-//         if ($view.isScrolling) {
-//             $view.prevOffsetX = 0
-//             $view.prevOffsetY = 0
-
-//             $view.offsetX += e.movementX
-//             $view.offsetY += e.movementY
-
-//         }
-//     })
-
-
-//     ctx.addEventListener('mouseup', (e) => {
-//         let isRightClick = e.button === 2
-
-//         if (isRightClick && $view.isScrolling) {
-
-//             $view.prevOffsetX = $view.offsetX
-//             $view.prevOffsetY = $view.offsetY
-
-//             $view.isScrolling = false
-//         }
-//     })
-// }
-
-
 
 
 // ==============================
@@ -1424,6 +1269,7 @@ function getContrastYIQ(hexcolor){
     return (yiq >= 128) ? BLACK : WHITE;
 }
 
+
 function isArray(array) {
     return Array.isArray(array)
 }
@@ -1432,6 +1278,7 @@ function isArray(array) {
 function isString(val) {
     return typeof(val) === 'string'
 }
+
 
 function isEmpty(val) {
     if (val === null) { return true }
@@ -1442,5 +1289,3 @@ function isEmpty(val) {
 
     return false
 }
-
-
