@@ -62,6 +62,7 @@ new Vue({
 
             currentTool: 'linestitch',
 
+            isMouseDragging: false,
             ruler: [],
 
             tiles: {},
@@ -107,32 +108,35 @@ new Vue({
 
 
             settings: {
-                gridBackgroundColor: WHITE,
-                gridLineColor: '#dfdfdf',
                 aidaCount: 14,
-                aidaCountMin: 7,
                 aidaCountMax: 28,
-                gridWidth: 30,
+                aidaCountMin: 7,
+                colorCounter: 100,
+                gridBackgroundColor: WHITE,
                 gridHeight: 30,
-                gridSizeMin: 10,
+                gridLineColor: '#dfdfdf',
                 gridSizeMax: 130,
+                gridSizeMin: 10,
                 gridTextColor: BLACK,
-                tilesize: 12,
-                tilesizeMin: 8,
-                tilesizeMax: 20,
-                selectedColor: 0,
-                showGrid: true,
-                showCursorMarkers: true,
-                showGridNumbers: true,
+                gridWidth: 30,
+                selectedColor: null,
                 showCenterCross: true,
+                showCursorMarkers: true,
+                showGrid: true,
+                showGridNumbers: true,
+                tilesize: 12,
+                tilesizeMax: 20,
+                tilesizeMin: 8,
             },
 
+
+            colorMap: {},
 
             colors: [
                 {
                     title: 'green',
                     color: '#5fd12e',
-                    id: 123,
+                    id: 15,
                     // threadCount: 2,
                     // stitchType: 1,
                     editingtitle: false,
@@ -142,7 +146,7 @@ new Vue({
                 {
                     title: 'puple',
                     color: '#8080ff',
-                    id: 456,
+                    id: 16,
                     // threadCount: 2,
                     // stitchType: 1,
                     editingtitle: false,
@@ -153,9 +157,9 @@ new Vue({
 
             tools: [
                 {
-                    name: 'Measure',
+                    name: 'Ruler',
                     icon: 'fa-ruler',
-                    command: 'M',
+                    command: 'R',
                     enabled: true,
 
                     draw: (sk) => {
@@ -239,17 +243,39 @@ new Vue({
                         this.drawCursor(sk)
                     },
 
-                    mousePressed: (cmd) => {
+                    mouseClicked: (cmd) => {
                         if (!this.isCursorInbounds(false)) { return }
 
                         let [x, y] = this.getMouseCoords()
-
                         let coord = `${x},${y}`
 
-                        if (this.tiles[coord]) {
-                            delete this.tiles[coord]
-                        }
+                        if (this.tiles[coord]) { delete this.tiles[coord] }
 
+                        this.save()
+
+                        return false
+                    },
+
+                    mousePressed: (cmd) => {
+                        if (!this.isCursorInbounds(false)) { return }
+                        this.isMouseDragging = true
+                    },
+
+                    mouseDragged: (sk) => {
+                        if (!this.isCursorInbounds(false)) { return }
+                        if (!this.isMouseDragging) { return }
+
+                        let [x, y] = this.getMouseCoords()
+                        let coord = `${x},${y}`
+
+                        if (this.tiles[coord]) { delete this.tiles[coord] }
+                        // this.tiles[coord] = [x, y, this.settings.selectedColor]
+
+                        return false
+                    },
+
+                    mouseReleased: (sk) => {
+                        this.isMouseDragging = false
                         this.save()
                     },
 
@@ -271,18 +297,37 @@ new Vue({
                     keyPressed: (sk) => {
                     },
 
-                    mousePressed: (cmd) => {
+                    mouseClicked: (cmd) => {
                         if (!this.isCursorInbounds(false)) { return }
 
                         let [x, y] = this.getMouseCoords()
-
                         let coord = `${x},${y}`
 
                         this.tiles[coord] = [x, y, this.settings.selectedColor]
 
-                        this.save()
+                        return false
+                    },
+
+                    mousePressed: (cmd) => {
+                        if (!this.isCursorInbounds(false)) { return }
+                        this.isMouseDragging = true
+                    },
+
+                    mouseDragged: (sk) => {
+                        if (!this.isCursorInbounds(false)) { return }
+                        if (!this.isMouseDragging) { return }
+
+                        let [x, y] = this.getMouseCoords()
+                        let coord = `${x},${y}`
+
+                        this.tiles[coord] = [x, y, this.settings.selectedColor]
 
                         return false
+                    },
+
+                    mouseReleased: (sk) => {
+                        this.isMouseDragging = false
+                        this.save()
                     },
 
                     toolChanged: (sk) => {
@@ -321,12 +366,18 @@ new Vue({
                     command: 'F',
 
                     draw: (sk) => {
+                        if (!this.isCursorInbounds()) { return }
+                        this.drawCursor(sk)
                     },
 
                     keyPressed: (sk) => {
                     },
 
                     mousePressed: (cmd) => {
+                        if (!this.isCursorInbounds()) { return }
+
+
+
                     },
 
                     toolChanged: (sk) => {
@@ -495,20 +546,10 @@ new Vue({
             }
 
             let res = null
-            let key = []
+            let cmd = this.getKeyCommand(sk.key)
 
-            sk.keyIsDown(sk.CONTROL) ? key.push('ctrl') : null
-            sk.keyIsDown(sk.SHIFT) ? key.push('shift') : null
-            sk.keyIsDown(sk.ALT) ? key.push('alt') : null
-
-            key.push(sk.key)
-
-            key = key.join('+')
-
-            console.debug('keydown event', key)
-
-            if (this.actions[key]) {
-                res = this.actions[key]()
+            if (this.actions[cmd]) {
+                res = this.actions[cmd]()
                 if (res === false) { return false }
             }
 
@@ -517,32 +558,59 @@ new Vue({
             this.changeActiveTool(tool)
 
             if (this.activeTool?.keyPressed) {
-                res = this.activeTool?.keyPressed(key)
+                res = this.activeTool?.keyPressed(cmd)
                 if (res === false) { return false }
             }
         },
 
 
         mousepressed(sk) {
-
-            let command = []
-
-            sk.keyIsDown(sk.CONTROL) ? command.push('ctrl') : null
-            sk.keyIsDown(sk.SHIFT) ? command.push('shift') : null
-            sk.keyIsDown(sk.ALT) ? command.push('alt') : null
-
-            command.push(`mouse_${sk.mouseButton}`)
-
-            command = command.join('+')
+            let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
 
             if (this.activeTool?.mousePressed) {
-                let res = this.activeTool.mousePressed(command)
+                let res = this.activeTool.mousePressed(cmd)
+                if (res === false) { return res }
+            }
+        },
+
+
+        mouseclicked(sk) {
+            let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
+
+            if (this.activeTool?.mouseClicked) {
+                let res = this.activeTool.mouseClicked(cmd)
                 if (res === false) { return res }
             }
         },
 
 
         mousemoved(sk) {
+            let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
+
+            if (this.activeTool?.mouseMoved) {
+                let res = this.activeTool.mouseMoved(cmd)
+                if (res === false) { return res }
+            }
+        },
+
+
+        mousedragged(sk) {
+            let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
+
+            if (this.activeTool?.mouseDragged) {
+                let res = this.activeTool.mouseDragged(cmd)
+                if (res === false) { return res }
+            }
+        },
+
+
+        mousereleased(sk) {
+            let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
+
+            if (this.activeTool?.mouseReleased) {
+                let res = this.activeTool.mouseReleased(cmd)
+                if (res === false) { return res }
+            }
         },
 
 
@@ -846,9 +914,23 @@ new Vue({
             let [mx, my]    = this.getMouseCoords()
             let [xmin, ymin, xmax, ymax] = this.getDesignCoords(inclusive)
 
-            console.debug('isCursorInbounds', mx, my, xmin, ymin, xmax, ymax)
+            // console.debug('isCursorInbounds', mx, my, xmin, ymin, xmax, ymax)
 
             return xmin <= mx && mx <= xmax && ymin <= my && my <= ymax
+        },
+
+
+        getKeyCommand(key) {
+            let sk = this.sketch
+            let command = []
+
+            sk.keyIsDown(sk.CONTROL) ? command.push('ctrl') : null
+            sk.keyIsDown(sk.SHIFT) ? command.push('shift') : null
+            sk.keyIsDown(sk.ALT) ? command.push('alt') : null
+
+            command.push(key)
+
+            return command.join('+')
         },
 
 
@@ -906,10 +988,12 @@ new Vue({
         newColor() {
             let hexColor = randomHex()
 
+            this.settings.colorCounter += 1
+
             this.colors.unshift({
                 title:  `Layer ${this.colors.length}`,
                 color:  hexColor, // '#5fd12e',
-                id:     parseInt(new Date().getTime().toString().substr(-6), 10) + this.colors.length * 100,
+                id:     this.settings.colorCounter,
                 // threadCount:  2,
                 // stitchType:   1,
                 editingtitle: false,
@@ -918,25 +1002,37 @@ new Vue({
                 // tiles: [],
             })
 
+            this.updateColorMap()
+
             this.save()
         },
 
 
-        deleteLayer(index) {
+        deleteColor(index) {
+            if (this.colors.length - 1 < 1) { return }
+            // let nextIndex = index
             this.colors.splice(index, 1)
+
+            this.updateColorMap()
+
             this.save()
         },
 
 
-        selectColor(index) {
-            this.settings.selectedColor = index
+        selectColor(colorId) {
+            this.settings.selectedColor = colorId
             this.save()
         },
 
 
         nextColor(dir) {
-            this.settings.selectedColor += dir
-            this.settings.selectedColor = this.sketch.constrain(this.settings.selectedColor, 0, this.colors.length -1)
+            console.debug('colors', this.colors)
+            let index = this.colorMap[this.settings.selectedColor]
+            index += dir
+            index = this.sketch.constrain(index, 0, this.colors.length -1)
+            console.debug('selected color', index)
+            this.settings.selectedColor = this.settings.selectedColor[index]
+            this.save()
         },
 
 
@@ -944,7 +1040,7 @@ new Vue({
             this.settings.tilesize += zoom
 
             this.settings.tilesize = this.sketch.constrain(this.settings.tilesize, this.settings.tilesizeMin, this.settings.tilesizeMax)
-            console.debug('zoomGrid', this.settings.tilesize)
+            // console.debug('zoomGrid', this.settings.tilesize)
 
             this.adjustGrid()
         },
@@ -1105,13 +1201,26 @@ new Vue({
         // },
 
 
-        moveLayer(index, dir) {
+        moveColor(index, dir) {
             let res = this.colors[index]
             this.colors.splice(index, 1)
             this.colors.splice(index + dir, 0, res)
 
+            this.updateColorMap()
+
             this.save()
         },
+
+
+        updateColorMap() {
+            this.colorMap = {}
+
+            this.colors.forEach((el, index) => {
+                this.colorMap[el.id] = index
+            }, this)
+
+            console.debug('colorMap update', this.colorMap)
+        }
     },
 
 

@@ -312,12 +312,18 @@ new Vue({
 
         sortColors(colorName) {
 
-            let color = this[colorName]
+            let colorList = this[colorName]
 
-            sortColorsList
+            let colors = colorList.map(el => el.color)
 
-            this[colorName] = color
-            // console.debug(color)
+            colors = sortColorsList(colors)
+
+            this[colorName] =
+            // let res =
+             colorList.map((el, index) => {
+                el.color = colors[index]
+                return el
+            })
 
         },
 
@@ -420,10 +426,8 @@ constructColor = function(colorObj){
     return colorObj;
 };
 
-sortColorsBy = function (colors, prop) {
-    return colors.sort(function (a, b) {
-        return a[prop] - b[prop]
-    });
+sortCollectionBy = function (list, prop) {
+    return list.sort((a, b) => a[prop] - b[prop]);
 };
 
 /**
@@ -440,7 +444,7 @@ sortColorsList = function(colors, domClass) {
         return constructColor(color);
     });
 
-    return sortColorsBy(colors, 'luma').map(el => el.hex)
+    return sortCollectionBy(colors, 'luma').map(el => el.hex)
 };
 
 </script>

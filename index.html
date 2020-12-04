@@ -47,8 +47,11 @@
                 @setup="setup"
                 @draw="draw"
                 @keypressed="keypressed"
+                @mouseclicked="mouseclicked"
+                @mousedragged="mousedragged"
                 @mousemoved="mousemoved"
                 @mousepressed="mousepressed"
+                @mousereleased="mousereleased"
                 @windowresized="windowresized"
             ></vue-p5>
 
@@ -235,7 +238,7 @@
 
 
             <div id="colors-panel">
-                <h3>colors</h3>
+                <h3>Colors</h3>
 
                 <button @click="newColor">
                     New color <small class="fas fa-fw fa-plus"></small>
@@ -249,8 +252,8 @@
                     <li
                         v-for="(color, colorIndex) in colors"
                         :key="colorIndex"
-                        :selected="settings.selectedLayer === colorIndex"
-                        @click="selectColor(colorIndex)"
+                        :selected="settings.selectedColor.id === color.id"
+                        @click="selectColor(color.id)"
                         class="flex flex-row flex-center control--layer"
                     >
                         <input class="layer-color"
@@ -277,13 +280,13 @@
                             />
                         </div>
 
-                        <button @click="moveLayer(colorIndex, -1)"
+                        <button @click="moveColor(colorIndex, -1)"
                             :disabled="colorIndex === 0"
                         >
                             <span class="fas fa-fw fa-angle-up"></span>
                         </button>
 
-                        <button @click="moveLayer(colorIndex, 1)"
+                        <button @click="moveColor(colorIndex, 1)"
                             :disabled="colorIndex === colors.length-1"
                         >
                             <span class="fas fa-fw fa-angle-down"></span>
@@ -327,7 +330,7 @@
     <!-- <script src="https://unpkg.com/lz-string@1.4.4/libs/lz-string.min.js"></script> -->
     <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js"></script>
     <!-- <script src="https://unpkg.com/lzwcompress@0.5.22/lzwCompress.js"></script> -->
-    <script src="https://unpkg.com/vue@2.6.12/dist/vue.min.js"></script>
+    <script src="https://unpkg.com/vue@2.6.12/dist/vue.js"></script>
     <script src="https://unpkg.com/vue-p5"></script>
     <script src="assets/app.js"></script>
 
