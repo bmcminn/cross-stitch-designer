@@ -8,7 +8,7 @@ const DEBUG_COLOR   = '#ff9900'
 
 
 
-var app = new Vue({
+new Vue({
     el: '#app',
     data() {
         return {
@@ -1119,20 +1119,20 @@ var app = new Vue({
         },
 
 
-        load() {
+        load(data) {
 
             // let data = window.location.hash.substr(1)
             // if (data.trim().length === 0) { return }
 
-            let copyrightOwner = localStorage.getItem('copyrightOwner')
-
             this.design = this.design || {}
+
+            let copyrightOwner = localStorage.getItem('copyrightOwner')
 
             if (copyrightOwner) {
                 this.design.owner = copyrightOwner
             }
 
-            let data = localStorage.getItem('designdata')
+            data = data ?? localStorage.getItem('designdata')
 
             if (!data) { return }
 

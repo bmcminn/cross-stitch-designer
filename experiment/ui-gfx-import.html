@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="assets/reset.css">
+    <style>
+        :root {
+            --sidebar-width: 18em;
+        }
+
+        .design {
+            width: calc(100vw - var(--sidebar-width));
+            overflow: auto;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            overflow: none;
+            overflow-y: auto;
+        }
+
+        .sidebar > div + div {
+            margin: 1em 0;
+        }
+    </style>
+</head>
+<body>
+
+    <main id="app">
+        <vue-p5 class="design"
+            @setup="setup"
+            @draw="draw"
+            @keypressed="keypressed"
+        ></vue-p5>
+
+
+        <!-- <input type="file" v-model="filedata"> -->
+        <div class="sidebar">
+
+            <div>
+                width:
+                <input type="number" v-model="settings.designWidth" @change="resizecanvas" />
+            </div>
+
+            <div>
+                height:
+                <input type="number" v-model="settings.designHeight" @change="resizecanvas" />
+            </div>
+
+            <div>
+                Design size: {{ widthInches|round}}" x {{ heightInches|round }}"
+            </div>
+
+            <div>
+                Aida count:
+                <select v-model="settings.designAidaCount" @change="designMetrics">
+                    <option v-for="(count, index) in aidaCounts" :key="`fruit-${index}`">
+                        {{ count }}
+                    </option>
+                </select>
+                <!--
+                <input type="number"
+                    v-model="settings.designAidaCount"
+                    @change="designMetrics"
+                />
+                 -->
+            </div>
+
+            <div>
+                Image Scale: {{ imageScale|round }}<br>
+                <button @click="imageScale += 0.1">+</button>
+                <button @click="imageScale -= 0.1">-</button>
+            </div>
+
+            <div>
+                <button @click="togglePreview">Toggle Preview</button>
+                <button @click="rasterizeImage">Rasterize</button>
+            </div>
+        </div>
+    </main>
+
+<!-- <script src="https://unpkg.com/vue@next"></script> -->
+<script src="https://unpkg.com/vue@2.6.12/dist/vue.min.js"></script>
+<script src="https://unpkg.com/vue-p5"></script>
+<script>
+
+
+const App = new Vue({
+    el: '#app',
+
+    data() {
+        return {
+            counter:        0,
+            filedata:       null,
+            input:          null,
+            file:           null,
+
+            isUploadingDesign: true,
+            image:          null,
+            showImage:      true,
+            imageOffsetX:   0,
+            imageOffsetY:   0,
+            imageScale:     1,
+
+
+            aidaCounts: [ 7, 10, 11, 12, 14, 16, 18, 22, 28 ],
+
+
+            cells:          null, // array
+            showCells:      false,
+
+
+            widthInches: 0,
+            heightInches: 0,
+
+            view: {
+                width: 0,
+                height: 0,
+            },
+
+
+            settings: {
+                designWidth: 100,
+                designHeight: 100,
+
+                designAidaCount: 14,
+
+                strokeColor: '#d3d3d3',
+
+                backgroundColor: '#ffffff',
+
+                tilesize: 8,
+            },
+        }
+    },
+
+
+    methods: {
+        setup(sk) {
+            this.sketch = sk
+
+            this.view.width     = this.settings.designWidth * this.settings.tilesize
+            this.view.height    = this.settings.designHeight * this.settings.tilesize
+
+            this.designMetrics()
+
+            sk.createCanvas(this.view.width, this.view.height)
+
+            sk.pixelDensity(1)
+
+            sk.frameRate(30)
+
+            sk.background('#ff9900')
+
+
+            this.input = sk.createFileInput(this.handleFile)
+            // this.input.position(0, 0)
+        },
+
+
+        resizecanvas() {
+
+            let sk = this.sketch
+
+            this.view.width     = this.settings.designWidth * this.settings.tilesize
+            this.view.height    = this.settings.designHeight * this.settings.tilesize
+
+            sk.resizeCanvas(this.view.width, this.view.height)
+        },
+
+
+
+        draw(sk) {
+            sk.clear()
+
+            sk.fill('#ff9900')
+
+            this.drawImage(sk)
+            this.drawCells(sk)
+        },
+
+
+        debugImageFile() {
+
+            console.debug('imageFile', this.image)
+            console.debug('imageFile', this.sketch)
+
+        },
+
+
+        keypressed(sk) {
+
+            if (this.isUploadingDesign) {
+                this.designUploadControls(sk)
+            }
+
+        },
+
+
+        drawImage(sk) {
+            if (!this.image) { return }
+            if (!this.showImage) { return }
+
+            let ratio = round(this.image.height / this.image.width)
+
+            let x = 0 + this.imageOffsetX - ((Math.floor(this.imageScale * this.image.width) - this.image.width) / 2)
+            let y = 0 + this.imageOffsetY - ((Math.floor(this.imageScale * this.image.height) - this.image.height) / 2)
+
+            sk.image(this.image, x, y, sk.width * this.imageScale, sk.width * ratio * this.imageScale)
+        },
+
+
+        drawCells(sk) {
+            if (!this.cells) { return }
+            if (!this.showCells) { return }
+
+            for (var i = this.cells.length - 1; i >= 0; i--) {
+                let [x,y,r,g,b,a] = this.cells[i]
+
+                sk.fill(r, g, b)
+                sk.stroke(this.settings.strokeColor)
+                sk.strokeWeight(0.5)
+                sk.square(x, y, this.settings.tilesize)
+            }
+        },
+
+
+        designMetrics() {
+
+            console.debug('designAidaCount', this.settings.designAidaCount)
+            this.widthInches    = this.settings.designWidth  / Number(this.settings.designAidaCount)
+            this.heightInches   = this.settings.designHeight / Number(this.settings.designAidaCount)
+        },
+
+
+        rasterizeImage() {
+
+            if (!this.image) { return }
+
+            let sk = this.sketch
+
+            let cells = []
+
+
+            sk.loadPixels()
+
+            console.debug('pixels', sk.pixels, sk.width, sk.height, sk.width * sk.height)
+
+            const PIXEL_COUNT = 4
+            let cellIndex = -1
+
+            // let cellSize = this.settings.designWidth * this.settings.designHeight * PIXEL_COUNT
+
+            for (var i = 0; i <= sk.pixels.length; i += (this.settings.tilesize * PIXEL_COUNT)) {
+
+                cellIndex += 1
+
+                let r = sk.pixels[i]
+                let g = sk.pixels[i + 1]
+                let b = sk.pixels[i + 2]
+                let a = sk.pixels[i + 3]
+
+                let [x, y] = indexToXY(cellIndex, this.view.width, this.view.height)
+
+                cells.push([x * this.settings.tilesize, y * this.settings.tilesize, r, g, b, a])
+            }
+
+            this.cells = cells
+
+            console.debug('cells', cells, cellIndex)
+            // this.image = null
+        },
+
+
+        togglePreview() {
+            this.showImage = !this.showImage
+            this.showCells = !this.showImage
+        },
+
+        handleFile(file) {
+            let sk = this.sketch
+
+            if (file.type === 'image') {
+                this.image = sk.createImg(file.data, '')
+                this.image.hide()
+            }
+
+        },
+
+
+        designUploadControls(sk) {
+
+            let offsetAdjust = 10
+
+            console.debug('designUploadControls', sk.key)
+
+            switch(sk.key) {
+                case 'ArrowUp':
+                    this.imageOffsetY -= offsetAdjust
+                    break
+                case 'ArrowRight':
+                    this.imageOffsetX += offsetAdjust
+                    break
+                case 'ArrowDown':
+                    this.imageOffsetY += offsetAdjust
+                    break
+                case 'ArrowLeft':
+                    this.imageOffsetX -= offsetAdjust
+                    break
+            }
+        },
+
+
+    },
+
+    filters: {
+        round(num, fixed=2) {
+            return round(num, fixed)
+        },
+    },
+
+
+})
+
+
+function round(value, fixed=2) {
+    return Number(value).toFixed(fixed)
+}
+
+
+function readFile(file) {
+
+    if (!file) { return null }
+
+    let reader = new FileReader()
+
+    reader.readAsText(file, "UTF-8")
+
+    reader.onload = function (evt) {
+        console.debug('onload', evt.target)
+    }
+
+    reader.onerror = function (evt) {
+        console.error("error reading file", evt)
+    }
+
+}
+
+// Vue.createApp(App).mount('#app')
+
+
+function indexToXY(index, width, height) {
+    if (index > width * height) { return [ null, null ] }
+
+    let x = index % width
+    let y = Math.floor(index / width)
+
+    return [x, y]
+}
+
+
+
+</script>
+</body>
+</html>
