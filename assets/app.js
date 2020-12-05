@@ -108,32 +108,35 @@ new Vue({
 
 
             settings: {
-                gridBackgroundColor: WHITE,
-                gridLineColor: '#dfdfdf',
                 aidaCount: 14,
-                aidaCountMin: 7,
                 aidaCountMax: 28,
-                gridWidth: 30,
+                aidaCountMin: 7,
+                colorCounter: 100,
+                gridBackgroundColor: WHITE,
                 gridHeight: 30,
-                gridSizeMin: 10,
+                gridLineColor: '#dfdfdf',
                 gridSizeMax: 130,
+                gridSizeMin: 10,
                 gridTextColor: BLACK,
-                tilesize: 12,
-                tilesizeMin: 8,
-                tilesizeMax: 20,
-                selectedColor: 0,
-                showGrid: true,
-                showCursorMarkers: true,
-                showGridNumbers: true,
+                gridWidth: 30,
+                selectedColor: null,
                 showCenterCross: true,
+                showCursorMarkers: true,
+                showGrid: true,
+                showGridNumbers: true,
+                tilesize: 12,
+                tilesizeMax: 20,
+                tilesizeMin: 8,
             },
 
+
+            colorMap: {},
 
             colors: [
                 {
                     title: 'green',
                     color: '#5fd12e',
-                    id: 123,
+                    id: 15,
                     // threadCount: 2,
                     // stitchType: 1,
                     editingtitle: false,
@@ -143,7 +146,7 @@ new Vue({
                 {
                     title: 'puple',
                     color: '#8080ff',
-                    id: 456,
+                    id: 16,
                     // threadCount: 2,
                     // stitchType: 1,
                     editingtitle: false,
@@ -985,10 +988,12 @@ new Vue({
         newColor() {
             let hexColor = randomHex()
 
+            this.settings.colorCounter += 1
+
             this.colors.unshift({
                 title:  `Layer ${this.colors.length}`,
                 color:  hexColor, // '#5fd12e',
-                id:     parseInt(new Date().getTime().toString().substr(-6), 10) + this.colors.length * 100,
+                id:     this.settings.colorCounter,
                 // threadCount:  2,
                 // stitchType:   1,
                 editingtitle: false,
@@ -997,25 +1002,37 @@ new Vue({
                 // tiles: [],
             })
 
+            this.updateColorMap()
+
             this.save()
         },
 
 
-        deleteLayer(index) {
+        deleteColor(index) {
+            if (this.colors.length - 1 < 1) { return }
+            // let nextIndex = index
             this.colors.splice(index, 1)
+
+            this.updateColorMap()
+
             this.save()
         },
 
 
-        selectColor(index) {
-            this.settings.selectedColor = index
+        selectColor(colorId) {
+            this.settings.selectedColor = colorId
             this.save()
         },
 
 
         nextColor(dir) {
-            this.settings.selectedColor += dir
-            this.settings.selectedColor = this.sketch.constrain(this.settings.selectedColor, 0, this.colors.length -1)
+            console.debug('colors', this.colors)
+            let index = this.colorMap[this.settings.selectedColor]
+            index += dir
+            index = this.sketch.constrain(index, 0, this.colors.length -1)
+            console.debug('selected color', index)
+            this.settings.selectedColor = this.settings.selectedColor[index]
+            this.save()
         },
 
 
@@ -1184,13 +1201,26 @@ new Vue({
         // },
 
 
-        moveLayer(index, dir) {
+        moveColor(index, dir) {
             let res = this.colors[index]
             this.colors.splice(index, 1)
             this.colors.splice(index + dir, 0, res)
 
+            this.updateColorMap()
+
             this.save()
         },
+
+
+        updateColorMap() {
+            this.colorMap = {}
+
+            this.colors.forEach((el, index) => {
+                this.colorMap[el.id] = index
+            }, this)
+
+            console.debug('colorMap update', this.colorMap)
+        }
     },
 
 
