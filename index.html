@@ -254,12 +254,14 @@
                         :key="layerIndex"
                         :selected="settings.selectedLayer == layer.id"
                         @click="selectLayer(layer.id)"
-                        class="flex flex-row flex-center control--layer"
+                        :class="{
+                            'flex flex-row flex-center control--layer': true,
+                            'is-visible': layer.isVisible
+                        }"
                     >
-                        <button @click="toggleLayerVisibility(layerIndex)">
+                        <button @click="toggleLayerVisibility(layerIndex)" title="Toggle visiblity">
                             <span :class="{
-                                'fas': true,
-                                'fa-fw': true,
+                                'fas fa-fw': true,
                                 'fa-eye': layer.isVisible,
                                 'fa-eye-slash': !layer.isVisible
                             }"></span>
