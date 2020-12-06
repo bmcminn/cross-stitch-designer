@@ -416,7 +416,8 @@ new Vue({
 
                             this.templine = []
                             this.templine.push(x,y)
-                            // this.save()
+
+                            this.save()
                         }
 
                     },
