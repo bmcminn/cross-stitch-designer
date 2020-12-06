@@ -205,6 +205,9 @@ small,
 .control--layer[selected] {
     background-color: #c6e6ff;
 }
+.control--layer:not(.is-visible) {
+    opacity: 0.6;
+}
 
 
 

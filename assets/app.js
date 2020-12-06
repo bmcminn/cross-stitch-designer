@@ -405,8 +405,7 @@ new Vue({
                             this.tiles[coord] = [x,y,drawColor]
                         }, this)
 
-                        // this.save()
-
+                        this.save()
                     },
 
                     toolChanged: (sk) => {
@@ -671,6 +670,8 @@ new Vue({
                 let [x, y, colorId] = this.tiles[key]
 
                 if (x < 0 || y < 0) { return }
+
+                if (!this.getDrawColorIsVisible(colorId)) { return }
 
                 sk.strokeWeight(0)
                 sk.fill(this.getDrawColor(colorId))
@@ -1066,13 +1067,16 @@ new Vue({
         },
 
 
-        getDrawColor(colorId) {
-
+        getDrawColorIsVisible(colorId = null) {
             colorId = colorId ?? this.settings.selectedLayer
-            // this.settings.selectedLayer
             let index = this.settings.colorMap[colorId]
+            return this.layers[index].isVisible
+        },
 
-            // console.debug('getDrawColor', colorId, index)
+
+        getDrawColor(colorId = null) {
+            colorId = colorId ?? this.settings.selectedLayer
+            let index = this.settings.colorMap[colorId]
             return this.layers[index].color
         },
 
@@ -1163,10 +1167,7 @@ new Vue({
 
             this.save()
 
-
-            let designView = document.querySelector('.design-view')
-
-            this.designViewDrawCentered = width < designView.clientWidth
+            this.designViewDrawCentered = width < document.querySelector('.design-view').clientWidth
         },
 
 
@@ -1177,15 +1178,11 @@ new Vue({
 
             coordColor = coordColor ? coordColor[2] : 0
 
-            // console.debug('floodFill', color, coord, coordColor)
-
             if (x >= c || y >= d) { return }
             if (x < a || y < b) { return }
             if (visited[coord] === true) { return }
             if (coordColor !== startColor) { return }
             if (coordColor === drawColor) { return }
-            // if (startColor === drawColor) { return }
-            // if (coordColor && coordColor === drawColor) { return }
 
             visited[coord] = true
 
