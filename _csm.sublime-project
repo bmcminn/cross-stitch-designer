@@ -4,7 +4,6 @@
 		{
 			"path": ".",
 			"folder_exclude_patterns": [
-				"__*",
 				"node_modules",
 			],
 			"file_exclude_patterns": [

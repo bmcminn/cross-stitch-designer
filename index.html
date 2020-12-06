@@ -57,14 +57,14 @@
 
 
             <ul class="print-only">
-                <li v-for="color in colors"
-                    :key="color.color"
+                <li v-for="layer in layers"
+                    :key="layer.color"
                     class="flex"
                 >
                     <span class="swatch" :style="{
-                        'background-color': color.color
+                        'background-color': layer.color
                     }"></span>
-                    {{ color.title }}
+                    {{ layer.title }}
                 </li>
             </ul>
 
@@ -240,7 +240,7 @@
             <div id="colors-panel">
                 <h3>Colors</h3>
 
-                <button @click="newColor">
+                <button @click="newLayer">
                     New color <small class="fas fa-fw fa-plus"></small>
                 </button>
 
@@ -250,49 +250,58 @@
 
                 <ul class="controls controls--colors">
                     <li
-                        v-for="(color, colorIndex) in colors"
-                        :key="colorIndex"
-                        :selected="settings.selectedColor.id === color.id"
-                        @click="selectColor(color.id)"
+                        v-for="(layer, layerIndex) in layers"
+                        :key="layerIndex"
+                        :selected="settings.selectedLayer == layer.id"
+                        @click="selectLayer(layer.id)"
                         class="flex flex-row flex-center control--layer"
                     >
+                        <button @click="toggleLayerVisibility(layerIndex)">
+                            <span :class="{
+                                'fas': true,
+                                'fa-fw': true,
+                                'fa-eye': layer.isVisible,
+                                'fa-eye-slash': !layer.isVisible
+                            }"></span>
+                        </button>
+
                         <input class="layer-color"
                             type="color"
-                            v-model="color.color"
+                            v-model="layer.color"
                             @change="save()"
                             :style="{
-                                'background-color': color.color
+                                'background-color': layer.color
                             }"
                         />
 
                         <div class="flex-grow color--name">
                             <!-- // TODO: figure out a clickaway strategy -->
-                            <label v-show="color.editingtitle == false"
+                            <label v-show="layer.editingtitle == false"
                                 class="full-width"
-                                @dblclick="color.editingtitle=true"
-                            >{{ color.title }}</label>
+                                @dblclick="layer.editingtitle=true"
+                            >{{ layer.title }}</label>
 
-                            <input v-show="color.editingtitle == true"
-                                v-model="color.title"
-                                @blur="color.editingtitle=false; $emit('update'); save()"
-                                @keyup.enter="color.editingtitle=false; $emit('update'); save()"
-                                @keyup.esc="color.editingtitle=false; $emit('update'); save()"
+                            <input v-show="layer.editingtitle == true"
+                                v-model="layer.title"
+                                @blur="layer.editingtitle=false; $emit('update'); save()"
+                                @keyup.enter="layer.editingtitle=false; $emit('update'); save()"
+                                @keyup.esc="layer.editingtitle=false; $emit('update'); save()"
                             />
                         </div>
 
-                        <button @click="moveColor(colorIndex, -1)"
-                            :disabled="colorIndex === 0"
+                        <button @click="moveLayer(layerIndex, -1)"
+                            :disabled="layerIndex === 0"
                         >
                             <span class="fas fa-fw fa-angle-up"></span>
                         </button>
 
-                        <button @click="moveColor(colorIndex, 1)"
-                            :disabled="colorIndex === colors.length-1"
+                        <button @click="moveLayer(layerIndex, 1)"
+                            :disabled="layerIndex === layers.length-1"
                         >
                             <span class="fas fa-fw fa-angle-down"></span>
                         </button>
 
-                        <button @click="deleteColor(colorIndex)">
+                        <button @click="deleteLayer(layerIndex)">
                             <span class="fas fa-fw fa-trash"></span>
                         </button>
                     </li>
