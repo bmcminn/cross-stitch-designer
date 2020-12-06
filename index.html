@@ -199,8 +199,6 @@
                     />
                 </div>
 
-
-
             </details>
 
 
@@ -297,8 +295,8 @@
 
         <dialog id="documentInfo">
           <form method="dialog">
-            <summary>Document Information</summary>
-                <div>
+            <div class='h3'>Document Information</div>
+                <div class="form-group">
                     <label for="design.title">Design Title</label>
                     <input type="text"
                         class="full-width"
@@ -309,7 +307,7 @@
                 </div>
 
 
-                <div>
+                <div class="form-group">
                     <label for="design.designer">Designer</label>
                     <input type="text"
                         class="full-width"
@@ -320,7 +318,7 @@
                 </div>
 
 
-                <div>
+                <div class="form-group">
                     <label for="design.copyright">Copyright Date</label>
                     <input type="date"
                         class="full-width"
@@ -331,7 +329,7 @@
                 </div>
 
 
-                <div class="flex">
+                <div class="form-group">
                     <label for="settings.gridWidth">Width</label>
                     <input type="number"
                         id="settings.gridWidth"
@@ -342,7 +340,7 @@
                     />
                 </div>
 
-                <div class="flex">
+                <div class="form-group">
                     <label for="settings.gridHeight">Height</label>
                     <input type="number"
                         id="settings.gridHeight"
@@ -354,7 +352,7 @@
                 </div>
 
 
-                <div class="flex">
+                <div class="form-group">
                     <label for="settings.aidaCount">Aida Count</label>
                     <input id="settings.aidaCount"
                         @change="adjustGrid()"
@@ -367,7 +365,7 @@
 
 
 
-                <div>
+                <div class="form-group">
                     <label for="settings.gridBackgroundColor">Aida cloth color</label>
                     <input id="settings.gridBackgroundColor"
                         @change="save"
@@ -376,7 +374,7 @@
                     />
                 </div>
 
-                <div>
+                <div class="form-group">
                     <label for="settings.gridLineColor">Grid line color</label>
                     <input id="settings.gridLineColor"
                         @change="save"
@@ -386,8 +384,8 @@
                 </div>
 
 
-                <h3>UI Settings</h3>
-                <div title="Show/hide the cursor location markers at edge of design grid">
+                <div class="h3">UI Settings</div>
+                <div class="form-group" title="Show/hide the cursor location markers at edge of design grid">
                     <input type="checkbox"
                         id="settings.showCursorMarkers"
                         v-model="settings.showCursorMarkers"
@@ -395,7 +393,7 @@
                     <label for="settings.showCursorMarkers">Show cursor markers</label>
                 </div>
 
-                <div title="Show/hide the row and column numbers">
+                <div class="form-group" title="Show/hide the row and column numbers">
                     <input type="checkbox"
                         id="settings.showGridNumbers"
                         v-model="settings.showGridNumbers"
@@ -403,12 +401,12 @@
                     <label for="settings.showGridNumbers">Show row/column numbers</label>
                 </div>
 
-                <div title="Show/hide the design center cross">
+                <div class="form-group" title="Show/hide the design center cross">
                     <input type="checkbox"
-                        id="settings.showCenterCross"
-                        v-model="settings.showCenterCross"
+                        id="settings.showGridCenterMarkers"
+                        v-model="settings.showGridCenterMarkers"
                     />
-                    <label for="settings.showCenterCross">Show design center marker</label>
+                    <label for="settings.showGridCenterMarkers">Show design center marker</label>
                 </div>
 
 

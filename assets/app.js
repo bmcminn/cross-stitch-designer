@@ -129,7 +129,7 @@ new Vue({
                 gridTextColor: BLACK,
                 gridWidth: 30,
                 selectedLayer: null,
-                showCenterCross: true,
+                showGridCenterMarkers: true,
                 showCursorMarkers: true,
                 showGrid: true,
                 showGridNumbers: true,
@@ -792,43 +792,6 @@ new Vue({
         },
 
 
-        drawTriangle(x, y, size, dir, color=BLACK) {
-            let sk = this.sketch
-
-            dir = new String(dir).trim().toLowerCase()
-
-            // test if dir is valid
-            if (!'up|right|down|left'.includes(dir)) { return }
-
-
-            if ('up|left'.includes(dir)) { size *= -1 }
-
-            // center triangle around target x,y origin
-            x -= size / 2
-            y -= size / 2
-
-            sk.strokeWeight(0)
-            sk.fill(color)
-
-            // draw left right
-            if ('left|right'.includes(dir)) {
-                sk.triangle(
-                    x,              y,
-                    x,              y + size,
-                    x + size ,      y + size / 2
-                )
-
-            // draw up/down
-            } else {
-                sk.triangle(
-                    x,              y,
-                    x + size,       y,
-                    x + size / 2,   y + size
-                )
-            }
-        },
-
-
         drawGrid(sk) {
 
             // if (!this.showGrid) { return }
@@ -848,10 +811,12 @@ new Vue({
             let yCenter = ymax / 2
 
 
-            this.drawTriangle(xCenter, 0-triOffset,         triSize, 'down')
-            this.drawTriangle(xCenter, ymax + triOffset,    triSize, 'up')
-            this.drawTriangle(0 - triOffset,    yCenter,    triSize, 'right')
-            this.drawTriangle(xmax + triOffset, yCenter,    triSize, 'left')
+            if (this.settings.showGridCenterMarkers) {
+                this.drawTriangle(xCenter, 0-triOffset,         triSize, 'down')
+                this.drawTriangle(xCenter, ymax + triOffset,    triSize, 'up')
+                this.drawTriangle(0 - triOffset,    yCenter,    triSize, 'right')
+                this.drawTriangle(xmax + triOffset, yCenter,    triSize, 'left')
+            }
 
 
             // setup text settings
@@ -937,42 +902,8 @@ new Vue({
         },
 
 
-        drawCursor() {
-
-            let sk = this.sketch
-
-            let origin      = 0 - this.originOffset
-            let tilesize    = this.settings.tilesize
-            let width       = this.settings.gridWidth
-            let height      = this.settings.gridHeight
-
-            let x = origin + Math.floor(sk.mouseX / tilesize) * tilesize
-            let y = origin + Math.floor(sk.mouseY / tilesize) * tilesize
-
-
-
-            // draw square cursor
-
-            sk.noCursor()
-
-            if (this.settings.showCursorMarkers) {
-                sk.fill('rgba(0,0,0,0.15)')
-                sk.strokeWeight(2)
-
-                sk.square(x, 0, tilesize)
-                sk.square(0, y, tilesize)
-                sk.square(x, (height - 1) * tilesize,    tilesize)
-                sk.square((width - 1) * tilesize,   y,                 tilesize)
-            }
-
-            sk.fill(0,0,0,0)
-            sk.stroke(this.getDrawColor())
-            sk.square(x, y, tilesize)
-        },
-
-
         drawCenterMarker(sk) {
-            if (!this.settings.showCenterCross) { return }
+            if (!this.settings.showGridCenterMarkers) { return }
 
             sk.stroke(this.settings.gridTextColor)
             sk.strokeWeight(2)
@@ -1013,38 +944,74 @@ new Vue({
         },
 
 
-        interpolateLine(x0, y0, x1, y1) {
+        drawCursor() {
 
-            // let [dx, dy] = deltaXY(x1, y1, x2, y2)
+            let sk = this.sketch
 
-            let tiles = []
+            let origin      = 0 - this.originOffset
+            let tilesize    = this.settings.tilesize
+            let width       = this.settings.gridWidth
+            let height      = this.settings.gridHeight
 
-            if (x0 === x1 && y0 === y1) { return tiles }
+            let x = origin + Math.floor(sk.mouseX / tilesize) * tilesize
+            let y = origin + Math.floor(sk.mouseY / tilesize) * tilesize
 
-            let dx = Math.abs(x1-x0)
-            let sx = x0 < x1 ? 1 : -1
-            let dy = -Math.abs(y1-y0)
-            let sy = y0<y1 ? 1 : -1
-            let err = dx+dy  /* error value e_xy */
 
-            while (true) {  /* loop */
-                tiles.push([x0, y0]);
 
-                if (x0 == x1 && y0 == y1) { break }
+            // draw square cursor
 
-                let e2 = 2 * err;
+            sk.noCursor()
 
-                if (e2 >= dy) { /* e_xy+e_x > 0 */
-                    err += dy;
-                    x0 += sx;
-                }
-                if (e2 <= dx) { /* e_xy+e_y < 0 */
-                    err += dx;
-                    y0 += sy;
-                }
+            if (this.settings.showCursorMarkers) {
+                sk.fill('rgba(0,0,0,0.15)')
+                sk.strokeWeight(2)
+
+                sk.square(x, 0, tilesize)
+                sk.square(0, y, tilesize)
+                sk.square(x, (height - 1) * tilesize,    tilesize)
+                sk.square((width - 1) * tilesize,   y,                 tilesize)
             }
 
-            return tiles
+            sk.fill(0,0,0,0)
+            sk.stroke(this.getDrawColor())
+            sk.square(x, y, tilesize)
+        },
+
+
+        drawTriangle(x, y, size, dir, color=BLACK) {
+            let sk = this.sketch
+
+            dir = new String(dir).trim().toLowerCase()
+
+            // test if dir is valid
+            if (!'up|right|down|left'.includes(dir)) { return }
+
+
+            if ('up|left'.includes(dir)) { size *= -1 }
+
+            // center triangle around target x,y origin
+            x -= size / 2
+            y -= size / 2
+
+            sk.strokeWeight(0)
+            sk.fill(color)
+
+            // draw left right
+            if ('left|right'.includes(dir)) {
+                sk.triangle(
+                    x,              y,
+                    x,              y + size,
+                    x + size ,      y + size / 2
+                )
+
+            // draw up/down
+            } else {
+                sk.triangle(
+                    x,              y,
+                    x + size,       y,
+                    x + size / 2,   y + size
+                )
+            }
         },
 
 
@@ -1086,6 +1053,41 @@ new Vue({
                 )
             }
 
+        },
+
+
+        interpolateLine(x0, y0, x1, y1) {
+
+            // let [dx, dy] = deltaXY(x1, y1, x2, y2)
+
+            let tiles = []
+
+            if (x0 === x1 && y0 === y1) { return tiles }
+
+            let dx = Math.abs(x1-x0)
+            let sx = x0 < x1 ? 1 : -1
+            let dy = -Math.abs(y1-y0)
+            let sy = y0<y1 ? 1 : -1
+            let err = dx+dy  /* error value e_xy */
+
+            while (true) {  /* loop */
+                tiles.push([x0, y0]);
+
+                if (x0 == x1 && y0 == y1) { break }
+
+                let e2 = 2 * err;
+
+                if (e2 >= dy) { /* e_xy+e_x > 0 */
+                    err += dy;
+                    x0 += sx;
+                }
+                if (e2 <= dx) { /* e_xy+e_y < 0 */
+                    err += dx;
+                    y0 += sy;
+                }
+            }
+
+            return tiles
         },
 
 
