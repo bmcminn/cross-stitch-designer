@@ -31,7 +31,7 @@
                 <h1>{{ design.title }}</h1>
 
                 <div>
-                    Copyright &copy; {{ design.copyright|datetime('YYYY') }} {{ design.owner }}
+                    Copyright &copy; {{ design.copyright|datetime('YYYY') }} {{ design.designer }}
                 </div>
 
                 <div>
@@ -91,6 +91,8 @@
 
         <div class="controls controls--sidebar no-print">
 
+            <button @click="openDialogue('#documentInfo')">Edit Document Settings</button>
+            <!--
             <details id="document-configuration">
                 <summary>Document Information</summary>
                 <div>
@@ -99,18 +101,18 @@
                         class="full-width"
                         id="design.title"
                         v-model="design.title"
-                        @change="save()"
+                        @change="save"
                     />
                 </div>
 
 
                 <div>
-                    <label for="design.owner">Owner</label>
+                    <label for="design.designer">Owner</label>
                     <input type="text"
                         class="full-width"
-                        id="design.owner"
-                        v-model="design.owner"
-                        @change="save()"
+                        id="design.designer"
+                        v-model="design.designer"
+                        @change="save"
                     />
                 </div>
 
@@ -121,7 +123,7 @@
                         class="full-width"
                         id="design.copyright"
                         v-model="design.copyright"
-                        @change="save()"
+                        @change="save"
                     />
                 </div>
 
@@ -165,7 +167,7 @@
                 <div>
                     <label for="settings.gridBackgroundColor">Aida cloth color</label>
                     <input id="settings.gridBackgroundColor"
-                        @change="save()"
+                        @change="save"
                         type="color"
                         v-model="settings.gridBackgroundColor"
                     />
@@ -174,22 +176,23 @@
                 <div>
                     <label for="settings.gridLineColor">Grid line color</label>
                     <input id="settings.gridLineColor"
-                        @change="save()"
+                        @change="save"
                         type="color"
                         v-model="settings.gridLineColor"
                     />
                 </div>
             </details>
+            -->
 
 
-            <details id="ui-settings">
+            <details id="ui-settings" open>
                 <summary>UI Settings</summary>
 
                 <div class="flex">
-                    <label for="settings.tilesize">Zoom</label>
+                    <label for="settings.tilesize" title="Zoom (-/+)">Zoom</label>
                     <input id="settings.tilesize"
                         @change="adjustGrid()"
-                        type="number"
+                        type="range"
                         :min="settings.tilesizeMin"
                         :max="settings.tilesizeMax"
                         v-model="settings.tilesize"
@@ -197,35 +200,13 @@
                 </div>
 
 
-                <div title="Show/hide the cursor location markers at edge of design grid">
-                    <input type="checkbox"
-                        id="settings.showCursorMarkers"
-                        v-model="settings.showCursorMarkers"
-                    />
-                    <label for="settings.showCursorMarkers">Show cursor markers</label>
-                </div>
 
-                <div title="Show/hide the row and column numbers">
-                    <input type="checkbox"
-                        id="settings.showGridNumbers"
-                        v-model="settings.showGridNumbers"
-                    />
-                    <label for="settings.showGridNumbers">Show row/column numbers</label>
-                </div>
-
-                <div title="Show/hide the design center cross">
-                    <input type="checkbox"
-                        id="settings.showCenterCross"
-                        v-model="settings.showCenterCross"
-                    />
-                    <label for="settings.showCenterCross">Show design center marker</label>
-                </div>
             </details>
 
 
             <div class="tools">
                 <button v-for="tool in tools"
-                    v-if="tool.enabled"
+                    v-if="tool.isEnabled"
                     :key="tool.name"
                     :title="`${tool.name}` + (tool.command ? ` (${tool.command})` : '')"
                     :selected="activeTool?.name === tool.name"
@@ -270,7 +251,7 @@
                         <input class="layer-color"
                             type="color"
                             v-model="layer.color"
-                            @change="save()"
+                            @change="save"
                             :style="{
                                 'background-color': layer.color
                             }"
@@ -285,9 +266,9 @@
 
                             <input v-show="layer.editingtitle == true"
                                 v-model="layer.title"
-                                @blur="layer.editingtitle=false; $emit('update'); save()"
-                                @keyup.enter="layer.editingtitle=false; $emit('update'); save()"
-                                @keyup.esc="layer.editingtitle=false; $emit('update'); save()"
+                                @blur="layer.editingtitle=false; $emit('update'); save"
+                                @keyup.enter="layer.editingtitle=false; $emit('update'); save"
+                                @keyup.esc="layer.editingtitle=false; $emit('update'); save"
                             />
                         </div>
 
@@ -314,16 +295,124 @@
 
 
 
-        <dialog id="favDialog">
+        <dialog id="documentInfo">
           <form method="dialog">
-            <p><label>Favorite animal:
-              <select>
-                <option></option>
-                <option>Brine shrimp</option>
-                <option>Red panda</option>
-                <option>Spider monkey</option>
-              </select>
-            </label></p>
+            <summary>Document Information</summary>
+                <div>
+                    <label for="design.title">Design Title</label>
+                    <input type="text"
+                        class="full-width"
+                        id="design.title"
+                        v-model="design.title"
+                        @change="save"
+                    />
+                </div>
+
+
+                <div>
+                    <label for="design.designer">Designer</label>
+                    <input type="text"
+                        class="full-width"
+                        id="design.designer"
+                        v-model="design.designer"
+                        @change="save"
+                    />
+                </div>
+
+
+                <div>
+                    <label for="design.copyright">Copyright Date</label>
+                    <input type="date"
+                        class="full-width"
+                        id="design.copyright"
+                        v-model="design.copyright"
+                        @change="save"
+                    />
+                </div>
+
+
+                <div class="flex">
+                    <label for="settings.gridWidth">Width</label>
+                    <input type="number"
+                        id="settings.gridWidth"
+                        v-model="settings.gridWidth"
+                        :min="settings.gridSizeMin"
+                        :max="settings.gridSizeMax"
+                        @change="adjustGrid()"
+                    />
+                </div>
+
+                <div class="flex">
+                    <label for="settings.gridHeight">Height</label>
+                    <input type="number"
+                        id="settings.gridHeight"
+                        v-model="settings.gridHeight"
+                        @change="adjustGrid()"
+                        :min="settings.gridSizeMin"
+                        :max="settings.gridSizeMax"
+                    />
+                </div>
+
+
+                <div class="flex">
+                    <label for="settings.aidaCount">Aida Count</label>
+                    <input id="settings.aidaCount"
+                        @change="adjustGrid()"
+                        type="number"
+                        :min="settings.aidaCountMin"
+                        :max="settings.aidaCountMax"
+                        v-model="settings.aidaCount"
+                    />
+                </div>
+
+
+
+                <div>
+                    <label for="settings.gridBackgroundColor">Aida cloth color</label>
+                    <input id="settings.gridBackgroundColor"
+                        @change="save"
+                        type="color"
+                        v-model="settings.gridBackgroundColor"
+                    />
+                </div>
+
+                <div>
+                    <label for="settings.gridLineColor">Grid line color</label>
+                    <input id="settings.gridLineColor"
+                        @change="save"
+                        type="color"
+                        v-model="settings.gridLineColor"
+                    />
+                </div>
+
+
+                <h3>UI Settings</h3>
+                <div title="Show/hide the cursor location markers at edge of design grid">
+                    <input type="checkbox"
+                        id="settings.showCursorMarkers"
+                        v-model="settings.showCursorMarkers"
+                    />
+                    <label for="settings.showCursorMarkers">Show cursor markers</label>
+                </div>
+
+                <div title="Show/hide the row and column numbers">
+                    <input type="checkbox"
+                        id="settings.showGridNumbers"
+                        v-model="settings.showGridNumbers"
+                    />
+                    <label for="settings.showGridNumbers">Show row/column numbers</label>
+                </div>
+
+                <div title="Show/hide the design center cross">
+                    <input type="checkbox"
+                        id="settings.showCenterCross"
+                        v-model="settings.showCenterCross"
+                    />
+                    <label for="settings.showCenterCross">Show design center marker</label>
+                </div>
+
+
+
             <menu>
               <button value="cancel">Cancel</button>
               <button id="confirmBtn" value="default">Confirm</button>

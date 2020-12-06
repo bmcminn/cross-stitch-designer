@@ -7,6 +7,11 @@ const BLACK         = '#000000'
 const DEBUG_COLOR   = '#ff9900'
 
 
+const MODAL_DOCUMENT_INFO = '#documentInfo'
+
+const LS_DESIGN_DATA = 'designdata'
+const LS_COPYRIGHT_DATA = 'copyright'
+
 
 new Vue({
     el: '#app',
@@ -102,8 +107,8 @@ new Vue({
                 heightInches: 0,
                 widthMM: 0,
                 heightMM: 0,
-                owner: '',
-                title: 'New Cross Stitch Design',
+                owner: null,
+                title: null,
                 copyright: new Date(),
             },
 
@@ -157,7 +162,7 @@ new Vue({
                     name: 'Ruler',
                     icon: 'fa-ruler',
                     command: 'R',
-                    enabled: true,
+                    isEnabled: true,
 
                     draw: (sk) => {
                         let [x,y]       = this.getMouseCoords()
@@ -234,7 +239,7 @@ new Vue({
                     name: 'Eraser',
                     icon: 'fa-eraser',
                     command: 'E',
-                    enabled: true,
+                    isEnabled: true,
 
                     draw: (sk) => {
                         if (!this.isCursorInbounds(false)) { return }
@@ -288,7 +293,7 @@ new Vue({
                     name: 'Brush',
                     icon: 'fa-paint-brush',
                     command: 'B',
-                    enabled: true,
+                    isEnabled: true,
 
                     draw: (sk) => {
                         if (!this.isCursorInbounds(false)) { return }
@@ -347,7 +352,7 @@ new Vue({
                     name: 'Pen',
                     icon: 'fa-pen-nib',
                     command: 'P',
-                    enabled: true,
+                    isEnabled: true,
 
                     draw: (sk) => {
                         if (!this.isCursorInbounds(false)) { return }
@@ -431,7 +436,7 @@ new Vue({
                     name: 'Fill',
                     icon: 'fa-fill-drip',
                     command: 'F',
-                    enabled: true,
+                    isEnabled: true,
 
                     draw: (sk) => {
                         if (!this.isCursorInbounds()) { return }
@@ -489,7 +494,7 @@ new Vue({
                     name: 'Eyedropper',
                     icon: 'fa-eye-dropper',
                     command: 'I',
-                    enabled: true,
+                    isEnabled: true,
 
                     draw: (sk) => {
                         if (!this.isCursorInbounds()) { return }
@@ -537,7 +542,7 @@ new Vue({
                     name: 'Line Stitch',
                     icon: 'fa-slash',
                     command: 'L',
-                    enabled: false,
+                    isEnabled: false,
 
                     draw: (sk) => {
                         if (!this.isCursorInbounds(false)) { return }
@@ -649,6 +654,9 @@ new Vue({
 
 
         keypressed(sk) {
+
+            console.debug('onFocus', sk.onFocus)
+
             if (sk.isComposing || sk.keyCode === 229) {
                 return
             }
@@ -661,7 +669,7 @@ new Vue({
                 if (res === false) { return false }
             }
 
-            let tool = this.tools.find(el => sk.key === el.command.toLowerCase() ? el : null)
+            let tool = this.tools.find(el => sk.key === el.command.toLowerCase() && el.isEnabled ? el : null)
 
             this.changeActiveTool(tool)
 
@@ -1379,7 +1387,6 @@ new Vue({
             // invert grid text overlay layers
             this.settings.gridTextColor = getContrastYIQ(this.settings.gridBackgroundColor)
 
-
             let data = {
                 layers:     this.layers,
                 settings:   this.settings,
@@ -1388,10 +1395,10 @@ new Vue({
                 design,
             }
 
-            localStorage.setItem('designdata', JSON.stringify(data))
+            localStorage.setItem(LS_DESIGN_DATA, JSON.stringify(data))
 
-            if (this.design.owner) {
-                localStorage.setItem('copyrightOwner', this.design.owner)
+            if (this.design.designer) {
+                localStorage.setItem(LS_COPYRIGHT_DATA, this.design.designer)
             }
 
             this.setPageTitle(this.design.title)
@@ -1406,28 +1413,29 @@ new Vue({
 
             this.design = this.design || {}
 
-            let copyrightOwner = localStorage.getItem('copyrightOwner')
+            let copyrightOwner = localStorage.getItem(LS_COPYRIGHT_DATA)
 
             if (copyrightOwner) {
-                this.design.owner = copyrightOwner
+                this.design.designer = copyrightOwner
             }
 
-            data = data ?? localStorage.getItem('designdata')
+            data = data ?? localStorage.getItem(LS_DESIGN_DATA)
 
-            if (!data) { return }
+            if (data) {
 
-            data = JSON.parse(data)
+                data = JSON.parse(data)
 
-            this.layers     = data.colors ?? data.layers ?? []
-            this.tiles      = data.tiles ?? {}
-            this.lines      = data.lines ?? {}
-            this.settings   = Object.assign({}, this.settings, data.settings)
+                this.layers     = data.colors ?? data.layers ?? []
+                this.tiles      = data.tiles ?? {}
+                this.lines      = data.lines ?? {}
+                this.settings   = Object.assign({}, this.settings, data.settings)
 
-            data.design.copyright = new Date(data.design.copyright)
-            this.design     = data.design
+                data.design.copyright = new Date(data.design.copyright)
+                this.design     = data.design
 
-            if (copyrightOwner) {
-                this.design.owner = copyrightOwner
+                if (copyrightOwner) {
+                    this.design.designer = copyrightOwner
+                }
             }
 
             this.updateColorMap()
@@ -1447,12 +1455,26 @@ new Vue({
         },
 
 
+        openDialogue(domId) {
+            // this.haltKeyMonitoring()
+
+            document.querySelector(domId).showModal()
+        },
+
+
+        // confirmDialoge(domId)
+
     },
 
+    // created() {
+    // },
 
     mounted() {
 
-        this.load()
+        if (!this.load()) {
+            console.debug('open new file dialogue')
+            // this.openDialogue(MODAL_DOCUMENT_INFO)
+        }
 
         this.settings.selectedLayer = this.settings.selectedLayer ?? this.layers[0].id
 
@@ -1460,16 +1482,21 @@ new Vue({
         this.selectLayer(this.settings.selectedLayer)
         this.setPageTitle(this.design.title)
 
-
         document.body.classList.remove('no-js')
+    },
 
+
+    updated() {
+
+        setTimeout(function() {
+            if (!isString(this.design.title)) {
+                this.openDialogue(MODAL_DOCUMENT_INFO)
+            }
+        }.bind(this), 300)
 
     },
 
 
-    created() {
-
-    },
 
 
     filters: {
@@ -1632,3 +1659,31 @@ function isEmpty(val) {
 
     return false
 }
+
+
+
+function onFocus(e) {
+    console.debug('onFocus', e)
+}
+function onBlur(e) {
+    console.debug('onBlur', e)
+}
+
+
+function on(eventName, elementSelector, handler) {
+    document.addEventListener(eventName, function(e) {
+        console.debug('addEventListener', eventName, e)
+        // loop parent nodes from the target to the delegation node
+        for (var target = e.target; target && target != this; target = target.parentNode) {
+            if (target.matches(elementSelector)) {
+                handler.call(target, e);
+                break;
+            }
+        }
+    }, false);
+}
+
+
+
+on('focus', 'input', onFocus)
+on('blur', 'input', onBlur)
