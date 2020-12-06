@@ -71,7 +71,8 @@ new Vue({
             undolist: [],
             undolength: 20,
 
-            templine: null,
+            templine: [],
+            tempcoords: [],
 
             activeTool: null,
 
@@ -207,8 +208,9 @@ new Vue({
                         }
                     },
 
-                    mousePressed: (cmd) => {
+                    mousePressed: (sk) => {
                         if (!this.isCursorInbounds(false)) { return }
+                        let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
 
                         let [x, y] = this.getMouseCoords()
 
@@ -236,10 +238,12 @@ new Vue({
 
                     draw: (sk) => {
                         if (!this.isCursorInbounds(false)) { return }
-                        this.drawCursor(sk)
+                        this.drawCursor()
                     },
 
-                    mouseClicked: (cmd) => {
+                    mouseClicked: (sk) => {
+                        let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
+
                         if (!this.isCursorInbounds(false)) { return }
 
                         let [x, y] = this.getMouseCoords()
@@ -252,8 +256,9 @@ new Vue({
                         return false
                     },
 
-                    mousePressed: (cmd) => {
+                    mousePressed: (sk) => {
                         if (!this.isCursorInbounds(false)) { return }
+                        let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
                         this.isMouseDragging = true
                     },
 
@@ -287,14 +292,16 @@ new Vue({
 
                     draw: (sk) => {
                         if (!this.isCursorInbounds(false)) { return }
-                        this.drawCursor(sk)
+                        this.drawCursor()
                     },
 
                     keyPressed: (sk) => {
                     },
 
-                    mouseClicked: (cmd) => {
+                    mouseClicked: (sk) => {
                         if (!this.isCursorInbounds(false)) { return }
+
+                        let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
 
                         let [x, y] = this.getMouseCoords()
                         let coord = `${x},${y}`
@@ -304,8 +311,11 @@ new Vue({
                         return false
                     },
 
-                    mousePressed: (cmd) => {
+                    mousePressed: (sk) => {
                         if (!this.isCursorInbounds(false)) { return }
+
+                        let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
+
                         this.isMouseDragging = true
                     },
 
@@ -337,22 +347,82 @@ new Vue({
                     name: 'Pen',
                     icon: 'fa-pen-nib',
                     command: 'P',
+                    enabled: true,
 
                     draw: (sk) => {
-                        if (!this.isCursorInbounds()) { return }
-                        this.drawCursor(sk)
+                        if (!this.isCursorInbounds(false)) { return }
+
+                        this.drawCursor()
+
+                        this.tempcoords = this.tempcoords ?? []
+
+                        let drawColor = this.getDrawColor()
+
+                        this.tempcoords.forEach(el => {
+                            this.drawTile({
+                                x1:             el[0],
+                                y1:             el[1],
+                                fill:           drawColor,
+                                strokeWeight:   0,
+                            })
+                        })
+
                     },
 
-                    keyPressed: (sk) => {
+                    keyPressed: (key) => {
+                        if (key === `Escape`) {
+                            this.templine = []
+                            this.tempcoords = []
+                            return false
+                        }
                     },
 
-                    mousePressed: (cmd) => {
-                        // let templine = this.templine ?? []
+                    mouseMoved: () => {
+                        // let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
 
-                        this.save()
+                        console.debug('pen::mouseMoved')
+                        this.templine = this.templine ?? []
+
+                        if (this.templine.length < 1) { return }
+
+                        let [mx, my] = this.getMouseCoords()
+                        let [x1, y1] = this.templine
+
+                        this.tempcoords = this.interpolateLine(x1, y1, mx, my)
                     },
 
-                    toolChanged: (sk) => {
+                    mousePressed: (sk) => {
+                        if (!this.isCursorInbounds(false)) { return }
+
+                        let [x, y] = this.getMouseCoords()
+                        let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
+
+                        this.templine = this.templine ?? []
+
+                        this.templine.push(x,y)
+
+                        console.debug('pen clicked', this.templine)
+
+                        if (this.templine.length >= 4) {
+
+                            let drawColor = this.getDrawColor()
+
+                            this.tempcoords.forEach(el => {
+                                let [x,y] = el
+                                this.tiles[`${x},${y}`] = [x,y,this.settings.selectedLayer]
+                            })
+
+                            this.tempcoords = []
+
+                            this.templine = []
+                            this.templine.push(x,y)
+                            // this.save()
+                        }
+
+                    },
+
+                    toolChanged: () => {
+                        this.templine = []
                     },
                 },
 
@@ -364,14 +434,16 @@ new Vue({
 
                     draw: (sk) => {
                         if (!this.isCursorInbounds()) { return }
-                        this.drawCursor(sk)
+                        this.drawCursor()
                     },
 
                     keyPressed: (sk) => {
                     },
 
-                    mouseClicked: (cmd) => {
+                    mouseClicked: (sk) => {
                         if (!this.isCursorInbounds()) { return }
+
+                        let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
 
                         let [x,y] = this.getMouseCoords()
 
@@ -420,11 +492,13 @@ new Vue({
 
                     draw: (sk) => {
                         if (!this.isCursorInbounds()) { return }
-                        this.drawCursor(sk)
+                        this.drawCursor()
                     },
 
-                    mousePressed: (cmd) => {
+                    mousePressed: (sk) => {
+                        if (!this.isCursorInbounds(false)) { return }
                         let [x, y] = this.getMouseCoords()
+                        let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
 
                         let coord = `${x},${y}`
 
@@ -449,7 +523,9 @@ new Vue({
                     keyPressed: (sk) => {
                     },
 
-                    mousePressed: (cmd) => {
+                    mousePressed: (sk) => {
+                        if (!this.isCursorInbounds(false)) { return }
+                        let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
                     },
 
                     toolChanged: (sk) => {
@@ -492,8 +568,11 @@ new Vue({
                         }
                     },
 
-                    mousePressed: (cmd) => {
+                    mousePressed: (sk) => {
+                        if (!this.isCursorInbounds(false)) { return }
+
                         let [x, y] = this.getMouseCoords()
+                        let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
 
                         this.templine = this.templine ?? []
 
@@ -593,50 +672,46 @@ new Vue({
 
 
         mousepressed(sk) {
-            let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
-
             if (this.activeTool?.mousePressed) {
-                let res = this.activeTool.mousePressed(cmd)
+                let res = this.activeTool.mousePressed(sk)
                 if (res === false) { return res }
             }
         },
 
 
         mouseclicked(sk) {
-            let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
-
             if (this.activeTool?.mouseClicked) {
-                let res = this.activeTool.mouseClicked(cmd)
+                let res = this.activeTool.mouseClicked(sk)
                 if (res === false) { return res }
             }
         },
 
 
         mousemoved(sk) {
-            let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
-
             if (this.activeTool?.mouseMoved) {
-                let res = this.activeTool.mouseMoved(cmd)
+                let res = this.activeTool.mouseMoved()
                 if (res === false) { return res }
             }
+
+            // if (this.activeTool?.mouseMoved) {
+            //     debounce(this.activeTool.mouseMoved.bind(this), 50)
+
+            //     // if (res === false) { return res }
+            // }
         },
 
 
         mousedragged(sk) {
-            let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
-
             if (this.activeTool?.mouseDragged) {
-                let res = this.activeTool.mouseDragged(cmd)
+                let res = this.activeTool.mouseDragged(sk)
                 if (res === false) { return res }
             }
         },
 
 
         mousereleased(sk) {
-            let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
-
             if (this.activeTool?.mouseReleased) {
-                let res = this.activeTool.mouseReleased(cmd)
+                let res = this.activeTool.mouseReleased(sk)
                 if (res === false) { return res }
             }
         },
@@ -650,7 +725,7 @@ new Vue({
 
             if (!this.tiles) { return }
 
-            let tilesize = this.settings.tilesize
+            // let tilesize = this.settings.tilesize
 
             let origin = -this.originOffset
             // sk.translate(this.originOffset, this.originOffset)
@@ -667,15 +742,21 @@ new Vue({
 
                 if (!this.tiles.hasOwnProperty(key)) { return }
 
-                let [x, y, colorId] = this.tiles[key]
+                let [x1, y1, colorId] = this.tiles[key]
 
-                if (x < 0 || y < 0) { return }
+                if (x1 < 0 || y1 < 0) { return }
 
                 if (!this.getDrawColorIsVisible(colorId)) { return }
 
-                sk.strokeWeight(0)
-                sk.fill(this.getDrawColor(colorId))
-                sk.square(Number(x) * tilesize, Number(y) * tilesize, tilesize)
+                this.drawTile({
+                    x1, y1,
+                    fill: this.getDrawColor(colorId),
+                    strokeWeight: 0,
+                })
+
+                // sk.strokeWeight(0)
+                // sk.fill(this.getDrawColor(colorId))
+                // sk.square(Number(x) * tilesize, Number(y) * tilesize, tilesize)
 
             }, this)
         },
@@ -845,7 +926,9 @@ new Vue({
         },
 
 
-        drawCursor(sk) {
+        drawCursor() {
+
+            let sk = this.sketch
 
             let origin      = 0 - this.originOffset
             let tilesize    = this.settings.tilesize
@@ -917,6 +1000,83 @@ new Vue({
                 sk.text(el, 10, ++index * fontSize + 10)
             })
         },
+
+
+        interpolateLine(x0, y0, x1, y1) {
+
+            // let [dx, dy] = deltaXY(x1, y1, x2, y2)
+
+            let tiles = []
+
+            if (x0 === x1 && y0 === y1) { return tiles }
+
+            let dx = Math.abs(x1-x0)
+            let sx = x0 < x1 ? 1 : -1
+            let dy = -Math.abs(y1-y0)
+            let sy = y0<y1 ? 1 : -1
+            let err = dx+dy  /* error value e_xy */
+
+            while (true) {  /* loop */
+                tiles.push([x0, y0]);
+
+                if (x0 == x1 && y0 == y1) { break }
+
+                let e2 = 2 * err;
+
+                if (e2 >= dy) { /* e_xy+e_x > 0 */
+                    err += dy;
+                    x0 += sx;
+                }
+                if (e2 <= dx) { /* e_xy+e_y < 0 */
+                    err += dx;
+                    y0 += sy;
+                }
+            }
+
+            return tiles
+        },
+
+
+        drawTile(opts = {}) {
+
+            let sk          = this.sketch
+            let tilesize    = this.settings.tilesize
+
+            const defaults = {
+                x1: null,
+                y1: null,
+                x2: null,
+                y2: null,
+                fill: BLACK,
+                strokeColor: BLACK,
+                strokeWeight: 0,
+            }
+
+            opts = Object.assign({}, defaults, opts)
+
+            if (!opts.x1 && !opts.y1) { return }
+
+            sk.stroke(opts.strokeColor)
+            sk.strokeWeight(opts.strokeWeight)
+            sk.fill(opts.fill)
+
+            if (opts.x2 && opts.y2) {
+                sk.rect(
+                    Number(opts.x1) * tilesize,
+                    Number(opts.y1) * tilesize,
+                    Number(opts.x2) * tilesize,
+                    Number(opts.y2) * tilesize
+                )
+            } else {
+                sk.square(
+                    Number(opts.x1) * tilesize,
+                    Number(opts.y1) * tilesize,
+                    tilesize
+                )
+            }
+
+        },
+
 
 
         // ========================================
