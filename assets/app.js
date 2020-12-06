@@ -87,6 +87,8 @@ new Vue({
                 '[':    () => { this.nextLayer(-1) },
                 '+':    () => { this.zoomGrid(1) },
                 '-':    () => { this.zoomGrid(-1) },
+                'ctrl+,': () => { this.openDialogue(MODAL_DOCUMENT_INFO) },
+
 
                 // TODO: integrate sk.save(c, filename) to export design image
                 // case 'ctrl+e':          this.export()
@@ -1457,8 +1459,13 @@ new Vue({
 
         openDialogue(domId) {
             // this.haltKeyMonitoring()
+            let dialogue = document.querySelector(domId)
 
-            document.querySelector(domId).showModal()
+            if (dialogue.open) {
+                dialogue.close()
+            } else {
+                dialogue.showModal()
+            }
         },
 
 
@@ -1471,10 +1478,7 @@ new Vue({
 
     mounted() {
 
-        if (!this.load()) {
-            console.debug('open new file dialogue')
-            // this.openDialogue(MODAL_DOCUMENT_INFO)
-        }
+        this.load()
 
         this.settings.selectedLayer = this.settings.selectedLayer ?? this.layers[0].id
 
