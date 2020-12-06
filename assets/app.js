@@ -1355,7 +1355,7 @@ new Vue({
             this.floodFill(x+1, y,   visited, startColor, drawColor, a, b, c, d)
             this.floodFill(x,   y-1, visited, startColor, drawColor, a, b, c, d)
             this.floodFill(x,   y+1, visited, startColor, drawColor, a, b, c, d)
-            // floodFill(x-1, y-1, visited, n, m)
+            this.floodFill(x-1, y-1, visited, startColor, drawColor, a, b, c, d)
             // floodFill(x-1, y+1, visited, n, m)
             // floodFill(x+1, y-1, visited, n, m)
             // floodFill(x+1, y+1, visited, n, m)
@@ -1418,9 +1418,9 @@ new Vue({
 
             data = JSON.parse(data)
 
-            this.layers     = data.layers
-            this.tiles      = data.tiles
-            this.lines      = data.lines
+            this.layers     = data.colors ?? data.layers ?? []
+            this.tiles      = data.tiles ?? {}
+            this.lines      = data.lines ?? {}
             this.settings   = Object.assign({}, this.settings, data.settings)
 
             data.design.copyright = new Date(data.design.copyright)
@@ -1454,9 +1454,15 @@ new Vue({
 
         this.load()
 
-        this.settings.selectedLayer = this.settings.selectedLayer ?? this.layers[0]
+        this.settings.selectedLayer = this.settings.selectedLayer ?? this.layers[0].id
+
+        this.updateColorMap()
+        this.selectLayer(this.settings.selectedLayer)
+        this.setPageTitle(this.design.title)
+
 
         document.body.classList.remove('no-js')
+
 
     },
 
