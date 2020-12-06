@@ -86,110 +86,22 @@
                     <a href="https://github.com/bmcminn/cross-stitch-designer/issues">Issues</a>
                 </p>
             </footer>
-        </div>
 
+            <div class="status-bar flex flex-row no-print">
+                <!-- <div><span class="fas fa-fw fa-arrows-alt"></span>{{ '' }}</div> -->
+                <class class="left-side flex flex-row">
+                    <div :title="`Design Dimensions (${settings.gridWidth}&times;${settings.gridHeight})`"><span class="fas fa-fw fa-th"></span>{{ settings.gridWidth }}&times;{{ settings.gridHeight }}</div>
 
-        <div class="controls controls--sidebar no-print">
-
-            <button @click="openDialogue('#documentInfo')">Edit Document Settings</button>
-            <!--
-            <details id="document-configuration">
-                <summary>Document Information</summary>
-                <div>
-                    <label for="design.title">Design Title</label>
-                    <input type="text"
-                        class="full-width"
-                        id="design.title"
-                        v-model="design.title"
-                        @change="save"
-                    />
-                </div>
+                    <div title="Active Tool">
+                        <i :class="['fas fa-fw', activeTool?.icon ]"></i>
+                        {{ activeTool?.name ?? '--' }}
+                    </div>
+                </class>
 
 
                 <div>
-                    <label for="design.designer">Owner</label>
-                    <input type="text"
-                        class="full-width"
-                        id="design.designer"
-                        v-model="design.designer"
-                        @change="save"
-                    />
-                </div>
-
-
-                <div>
-                    <label for="design.copyright">Copyright Date</label>
-                    <input type="date"
-                        class="full-width"
-                        id="design.copyright"
-                        v-model="design.copyright"
-                        @change="save"
-                    />
-                </div>
-
-
-                <div class="flex">
-                    <label for="settings.gridWidth">Width</label>
-                    <input type="number"
-                        id="settings.gridWidth"
-                        v-model="settings.gridWidth"
-                        :min="settings.gridSizeMin"
-                        :max="settings.gridSizeMax"
-                        @change="adjustGrid()"
-                    />
-                </div>
-
-                <div class="flex">
-                    <label for="settings.gridHeight">Height</label>
-                    <input type="number"
-                        id="settings.gridHeight"
-                        v-model="settings.gridHeight"
-                        @change="adjustGrid()"
-                        :min="settings.gridSizeMin"
-                        :max="settings.gridSizeMax"
-                    />
-                </div>
-
-
-                <div class="flex">
-                    <label for="settings.aidaCount">Aida Count</label>
-                    <input id="settings.aidaCount"
-                        @change="adjustGrid()"
-                        type="number"
-                        :min="settings.aidaCountMin"
-                        :max="settings.aidaCountMax"
-                        v-model="settings.aidaCount"
-                    />
-                </div>
-
-
-
-                <div>
-                    <label for="settings.gridBackgroundColor">Aida cloth color</label>
-                    <input id="settings.gridBackgroundColor"
-                        @change="save"
-                        type="color"
-                        v-model="settings.gridBackgroundColor"
-                    />
-                </div>
-
-                <div>
-                    <label for="settings.gridLineColor">Grid line color</label>
-                    <input id="settings.gridLineColor"
-                        @change="save"
-                        type="color"
-                        v-model="settings.gridLineColor"
-                    />
-                </div>
-            </details>
-            -->
-
-
-            <details id="ui-settings" open>
-                <summary>UI Settings</summary>
-
-                <div class="flex">
-                    <label for="settings.tilesize" title="Zoom (-/+)">Zoom</label>
+                    {{ 100 * (settings.tilesize-settings.tilesizeMin) / (settings.tilesizeMin-settings.tilesizeMax) | round(0) | abs }}%
+                    <label class="sr-only" for="settings.tilesize" title="Zoom (-/+)">Zoom</label>
                     <input id="settings.tilesize"
                         @change="adjustGrid()"
                         type="range"
@@ -198,8 +110,13 @@
                         v-model="settings.tilesize"
                     />
                 </div>
+            </div>
+        </div>
 
-            </details>
+
+        <div class="controls controls--sidebar no-print">
+
+            <button @click="openDialogue('#documentInfo')">Edit Document Settings</button>
 
 
             <div class="tools">

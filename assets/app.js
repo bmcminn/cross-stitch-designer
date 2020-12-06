@@ -956,11 +956,9 @@ new Vue({
             let x = origin + Math.floor(sk.mouseX / tilesize) * tilesize
             let y = origin + Math.floor(sk.mouseY / tilesize) * tilesize
 
-
-
             // draw square cursor
 
-            sk.noCursor()
+            // sk.noCursor()
 
             if (this.settings.showCursorMarkers) {
                 sk.fill('rgba(0,0,0,0.15)')
@@ -1508,6 +1506,10 @@ new Vue({
     filters: {
         round(value, decimals=2) {
             return Number.parseFloat(value).toFixed(decimals)
+        },
+
+        abs(value) {
+            return Math.abs(Number.parseFloat(value))
         },
 
         datetime(datetime, format='YYYY-mm-dd') {

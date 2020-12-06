@@ -210,12 +210,23 @@ small,
 }
 
 
+.status-bar {
+    background-color: #e3e3e3;
+    bottom: 0;
+    justify-content: space-between;
+    padding: 0.4em;
+    position: sticky;
+    width: 100%;
+}
+
+.status-bar .left-side div+div {
+    margin-left: 1.5em;
+}
+
 
 main {
-	position: fixed;
 	width: 100%;
 	height: 100%;
-	overflow: hidden;
 }
 
 @keyframes anim-spin-8 {
