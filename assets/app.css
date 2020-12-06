@@ -3,8 +3,8 @@
     --sidebar-width: 18em;
 
 
-    --button-border-color--selected: #5baaff;
-    --button-border-color: #5baaff;
+    --button-border-color--selected: #8959a8;
+    --button-border-color: #8959a8;
 }
 
 
@@ -198,11 +198,11 @@ small,
 }
 
 
-.control--color {
+.control--layer {
     justify-content: space-between;
     cursor: pointer;
 }
-.control--color[selected] {
+.control--layer[selected] {
     background-color: #c6e6ff;
 }
 
