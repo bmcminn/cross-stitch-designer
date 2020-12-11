@@ -60,7 +60,7 @@ Vue.component('color-edit-component', {
 
             this.debounceTimeoutColorSearch = setTimeout(() => {
                 this.colorResults = COLORS.filter(el => {
-                        let filterStr = this.colorsQuery.toLowerCase()
+                        let filterStr = this.settings.designColorsQuery.toLowerCase()
                         if (String(el.anchor).toLowerCase().includes(filterStr)) { return true }
                         if (String(el.dmc).toLowerCase().includes(filterStr)) { return true }
                         if (String(el.txt).toLowerCase().includes(filterStr)) { return true }
@@ -688,7 +688,7 @@ new Vue({
 
             this.debounceTimeoutColorSearch = setTimeout(() => {
                 this.colorResults = COLORS.filter(el => {
-                        let filterStr = this.colorsQuery.toLowerCase()
+                        let filterStr = this.settings.designColorsQuery.toLowerCase()
                         if (String(el.anchor).toLowerCase().includes(filterStr)) { return true }
                         if (String(el.dmc).toLowerCase().includes(filterStr)) { return true }
                         if (String(el.txt).toLowerCase().includes(filterStr)) { return true }
@@ -1164,42 +1164,6 @@ new Vue({
         },
 
 
-        drawTriangle(x, y, size, dir, color=BLACK) {
-            let sk = this.sketch
-
-            // let [dx, dy] = deltaXY(x1, y1, x2, y2)
-
-            let tiles = []
-
-            if (x0 === x1 && y0 === y1) { return tiles }
-
-            let dx = Math.abs(x1-x0)
-            let sx = x0 < x1 ? 1 : -1
-            let dy = -Math.abs(y1-y0)
-            let sy = y0<y1 ? 1 : -1
-            let err = dx+dy  /* error value e_xy */
-
-            while (true) {  /* loop */
-                tiles.push([x0, y0]);
-
-                if (x0 == x1 && y0 == y1) { break }
-
-                let e2 = 2 * err;
-
-                if (e2 >= dy) { /* e_xy+e_x > 0 */
-                    err += dy;
-                    x0 += sx;
-                }
-                if (e2 <= dx) { /* e_xy+e_y < 0 */
-                    err += dx;
-                    y0 += sy;
-                }
-            }
-
-            return tiles
-        },
-
-
         drawTile(opts = {}) {
 
             let sk          = this.sketch
@@ -1416,22 +1380,6 @@ new Vue({
             this.openDialog(MODAL_NEW_COLOR)
 
         },
-
-
-        // filterColorsList() {
-
-        //     let filterString = this.colorsQuery
-
-        //     if (!isEmpty(filterString)) {
-        //         this.filteredColors = COLORS
-        //         return
-        //     }
-
-        //     this.filteredColors = searchColors(filterString)
-
-        //     // this.colorsQuery = this.colorsList
-
-        // },
 
 
         addNewColor() {
@@ -1837,13 +1785,26 @@ new Vue({
         },
 
 
-        // confirmDialoge(domId)
+        moveColor(index, dir) {
+            let res = this.settings.designColors[index]
+            this.settings.designColors.splice(index, 1)
+            this.settings.designColors.splice(index + dir, 0, res)
 
-    },
+            this.updateColorMap()
 
-    created() {
+            this.save()
+        },
 
 
+        updateColorMap() {
+            this.colorMap = {}
+
+            this.settings.designColors.forEach((el, index) => {
+                this.colorMap[el.id] = index
+            }, this)
+
+            console.debug('colorMap update', this.colorMap)
+        }
     },
 
     mounted() {

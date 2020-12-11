@@ -314,3 +314,21 @@ small,
 	width: 100%;
 	display: block;
 }
+
+
+
+
+.form-group {
+    margin: 1em 0;
+}
+
+
+h2, .h2 {
+    font-size: 1.4em;
+    font-weight: bold;
+}
+
+h3, .h3 {
+    font-size: 1.2em;
+    font-weight: bold;
+}
