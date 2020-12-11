@@ -7,9 +7,78 @@ const BLACK         = '#000000'
 const DEBUG_COLOR   = '#ff9900'
 
 
+const MODAL_DOCUMENT_INFO = '#documentInfo'
+const MODAL_SELECTED_COLOR = '#colorEditPanel'
+const MODAL_NEW_COLOR = '#newColorPanel'
+
+const LS_DESIGN_DATA = 'designdata'
+const LS_COPYRIGHT_DATA = 'copyright'
+const LS_UNDO_DATA = 'undo'
+
+
+Vue.component('color-edit-component', {
+    data() {
+        return {
+            filteredColors: COLORS,
+            colorResults: COLORS,
+            colorsQuery: '',
+            debounceTimeoutColorSearch: null,
+            isSearchingColors: false,
+
+            tempColor: {},
+            symbolsList: [
+                '▰',
+                '○', '●',
+                '◇', '◆',
+                '✔',
+                '★','☆',
+                '1','2','3','4','5','6','7','8','9','0',
+                // '✱',
+                '•',
+                '*',
+                '×',
+                '=',
+                '⸫',
+                '¬',
+                '–',
+            ],
+        }
+    },
+
+    methods: {
+
+    },
+
+
+    watch: {
+        colorsQuery: function(query) {
+            if (this.debounceTimeoutColorSearch) {
+                clearTimeout(this.debounceTimeoutColorSearch)
+            }
+
+            this.isSearchingColors = true
+
+            this.debounceTimeoutColorSearch = setTimeout(() => {
+                this.colorResults = COLORS.filter(el => {
+                        let filterStr = this.colorsQuery.toLowerCase()
+                        if (String(el.anchor).toLowerCase().includes(filterStr)) { return true }
+                        if (String(el.dmc).toLowerCase().includes(filterStr)) { return true }
+                        if (String(el.txt).toLowerCase().includes(filterStr)) { return true }
+                    }, this)
+
+                this.isSearchingColors = false
+            }, 300)
+        },
+
+    },
+
+
+})
+
 
 new Vue({
     el: '#app',
+
     data() {
         return {
 
@@ -36,45 +105,74 @@ new Vue({
                 ]
             },
 
+            MODAL_DOCUMENT_INFO,
+            MODAL_SELECTED_COLOR,
+
             sketch: null,
 
-            DEBUG_MODE: false,
 
-            // VIEW PROPS
-            baseTilesize: 20,
+            activeTool: null,
 
-            zoomAdjust: 0.5,
-            zoomMin: 1,
-            zoomMax: 5,
-            zoomLevel: 3,
-
-            gridCrossSize: 5,
-            gridMarginScale: 4,
-
-            gridCenterX: 0,
-            gridCenterY: 0,
-
-            designViewDrawCentered: false,
-
-            originOffset: 0,
-            framerate: 20,
-            isScrolling: false,
 
             currentTool: 'linestitch',
 
-            isMouseDragging: false,
-            ruler: [],
+            DEBUG_MODE: false,
 
-            tiles: {},
+            designViewDrawCentered: false,
+
+            framerate: 20,
+
+            gridCenterX: 0,
+            gridCenterY: 0,
+            gridCrossSize: 5,
+            gridMarginScale: 4,
+
+            isMouseDragging: false,
+            isScrolling: false,
+
             lines: [],
 
-            undolist: [],
-            undolength: 20,
+            originOffset: 0,
 
-            templine: [],
+
+            ruler: [],
+
             tempcoords: [],
+            templine: [],
+            tiles: {},
 
-            activeTool: null,
+            filteredColors: COLORS,
+            colorResults: COLORS,
+            colorsQuery: '',
+            debounceTimeoutColorSearch: null,
+            isSearchingColors: false,
+
+            tempColor: {},
+            symbolsList: [
+                '▰',
+                '○', '●',
+                '◇', '◆',
+                '✔',
+                '★','☆',
+                '1','2','3','4','5','6','7','8','9','0',
+                // '✱',
+                '•',
+                '*',
+                '×',
+                '=',
+                '⸫',
+                '¬',
+                '–',
+            ],
+
+            undoLimit: 10,
+            undoList: [],
+            undoIndex: 0,
+
+            zoomAdjust: 0.5,
+            zoomLevel: 3,
+            zoomMax: 5,
+            zoomMin: 1,
 
             actions: {
                 'F3':   () => { this.DEBUG_MODE = !this.DEBUG_MODE },
@@ -82,12 +180,15 @@ new Vue({
                 '[':    () => { this.nextLayer(-1) },
                 '+':    () => { this.zoomGrid(1) },
                 '-':    () => { this.zoomGrid(-1) },
+                'ctrl+,': () => { this.openDialog(MODAL_DOCUMENT_INFO) },
+                'ctrl+z': () => { this.undo(1) },
+                'ctrl+shift+z': () => { this.undo(-1) },
 
                 // TODO: integrate sk.save(c, filename) to export design image
                 // case 'ctrl+e':          this.export()
 
                 // case 'g':   this.showGrid = !this.showGrid; break
-                // case 'ArrowLeft':   this.nudgeDesign(-1, 0); break
+                'ArrowLeft':  () => { this.nudgeDesign(-1, 0) },
                 // case 'ArrowUp':     this.nudgeDesign(0, -1); break
                 // case 'ArrowRight':  this.nudgeDesign(1, 0); break
                 // case 'ArrowDown':   this.nudgeDesign(0, 1); break
@@ -102,8 +203,8 @@ new Vue({
                 heightInches: 0,
                 widthMM: 0,
                 heightMM: 0,
-                owner: '',
-                title: 'New Cross Stitch Design',
+                owner: null,
+                title: 'Rename Your Design',
                 copyright: new Date(),
             },
 
@@ -113,7 +214,8 @@ new Vue({
                 aidaCountMax: 28,
                 aidaCountMin: 7,
                 colorCounter: 100,
-                colorMap: {},
+                designColorMap: {},
+                designColors: [],
                 gridBackgroundColor: WHITE,
                 gridHeight: 30,
                 gridLineColor: '#dfdfdf',
@@ -121,35 +223,17 @@ new Vue({
                 gridSizeMin: 10,
                 gridTextColor: BLACK,
                 gridWidth: 30,
-                selectedLayer: null,
-                showCenterCross: true,
+                loopColor: DEBUG_COLOR,
+                selectedColorId: 0,
                 showCursorMarkers: true,
                 showGrid: true,
+                showGridCenterMarkers: true,
                 showGridNumbers: true,
+                showLoop: false,
                 tilesize: 12,
                 tilesizeMax: 20,
                 tilesizeMin: 8,
             },
-
-
-
-            layers: [
-                {
-                    color: '#5fd12e',
-                    editingtitle: false,
-                    id: 15,
-                    isVisible: true,
-                    title: 'green',
-                },
-
-                {
-                    color: '#8080ff',
-                    editingtitle: false,
-                    id: 16,
-                    isVisible: true,
-                    title: 'puple',
-                },
-            ],
 
 
             tools: [
@@ -222,7 +306,6 @@ new Vue({
                             this.ruler.push(x,y)
                         }
 
-
                     },
 
                     toolChanged: () => {
@@ -244,7 +327,7 @@ new Vue({
                     mouseClicked: (sk) => {
                         let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
 
-                        if (!this.isCursorInbounds(false)) { return }
+                        if (!this.isCursorInbounds(false, sk)) { return }
 
                         let [x, y] = this.getMouseCoords()
                         let coord = `${x},${y}`
@@ -270,7 +353,7 @@ new Vue({
                         let coord = `${x},${y}`
 
                         if (this.tiles[coord]) { delete this.tiles[coord] }
-                        // this.tiles[coord] = [x, y, this.settings.selectedLayer]
+                        // this.tiles[coord] = [x, y, this.settings.selectedColorId]
 
                         return false
                     },
@@ -278,9 +361,6 @@ new Vue({
                     mouseReleased: (sk) => {
                         this.isMouseDragging = false
                         this.save()
-                    },
-
-                    undo: (ctx) => {
                     },
                 },
 
@@ -306,7 +386,7 @@ new Vue({
                         let [x, y] = this.getMouseCoords()
                         let coord = `${x},${y}`
 
-                        this.tiles[coord] = [x, y, this.settings.selectedLayer]
+                        this.tiles[coord] = [x, y, this.settings.selectedColorId]
 
                         return false
                     },
@@ -326,7 +406,7 @@ new Vue({
                         let [x, y] = this.getMouseCoords()
                         let coord = `${x},${y}`
 
-                        this.tiles[coord] = [x, y, this.settings.selectedLayer]
+                        this.tiles[coord] = [x, y, this.settings.selectedColorId]
 
                         return false
                     },
@@ -338,16 +418,13 @@ new Vue({
 
                     toolChanged: (sk) => {
                     },
-
-                    undo: (ctx) => {
-                    },
                 },
 
                 {
-                    name: 'Pen',
-                    icon: 'fa-pen-nib',
-                    command: 'P',
-                    enabled: true,
+                    name: 'Line Tool',
+                    icon: 'fa-slash',
+                    command: 'L',
+                    isEnabled: true,
 
                     draw: (sk) => {
                         if (!this.isCursorInbounds(false)) { return }
@@ -356,14 +433,17 @@ new Vue({
 
                         this.tempcoords = this.tempcoords ?? []
 
-                        let drawColor = this.getDrawColor()
+                        let color = this.getColor()
 
                         this.tempcoords.forEach(el => {
+                            let [x1, y1] = el
+
                             this.drawTile({
-                                x1:             el[0],
-                                y1:             el[1],
-                                fill:           drawColor,
-                                strokeWeight:   0,
+                                x1, y1,
+                                fill: color.hex,
+                                strokeWeight: 0,
+                                symbol: color.symbol,
+                                symbolColor: color.symbolColor,
                             })
                         })
 
@@ -379,8 +459,7 @@ new Vue({
 
                     mouseMoved: () => {
                         // let cmd = this.getKeyCommand(`mouse_${sk.mouseButton}`)
-
-                        console.debug('pen::mouseMoved')
+                        // console.debug('pen::mouseMoved')
                         this.templine = this.templine ?? []
 
                         if (this.templine.length < 1) { return }
@@ -401,15 +480,13 @@ new Vue({
 
                         this.templine.push(x,y)
 
-                        console.debug('pen clicked', this.templine)
-
                         if (this.templine.length >= 4) {
 
-                            let drawColor = this.getDrawColor()
+                            let color = this.getColor()
 
                             this.tempcoords.forEach(el => {
                                 let [x,y] = el
-                                this.tiles[`${x},${y}`] = [x,y,this.settings.selectedLayer]
+                                this.tiles[`${x},${y}`] = [x, y, color.id]
                             })
 
                             this.tempcoords = []
@@ -451,12 +528,13 @@ new Vue({
 
                         let visited = {}
 
-                        let drawColor = this.settings.selectedLayer
-                        let startColor = this.tiles[`${x},${y}`]
+                        let drawColor = this.getColor()
 
-                        startColor = startColor ? startColor[2] : 0
+                        let startColorId = this.tiles[`${x},${y}`] ?? 0
 
-                        this.floodFill(x, y, visited, startColor, drawColor, xmin, ymin, xmax, ymax)
+                        startColorId = startColorId ? startColorId[2] : 0
+
+                        this.floodFill(x, y, visited, startColorId, drawColor.id, xmin, ymin, xmax, ymax)
 
                         visited = Object.keys(visited)
 
@@ -474,7 +552,7 @@ new Vue({
 
                         visited.forEach(coord => {
                             let [x,y] = coord.split(',').map(el => Number(el))
-                            this.tiles[coord] = [x,y,drawColor]
+                            this.tiles[coord] = [x,y,drawColor.id]
                         }, this)
 
                         this.save()
@@ -505,7 +583,7 @@ new Vue({
                         let tile = this.tiles[coord]
 
                         if (tile) {
-                            this.settings.selectedLayer = tile[2]
+                            this.settings.selectedColorId = tile[2]
 
                             this.save()
                         }
@@ -534,9 +612,9 @@ new Vue({
 
                 {
                     name: 'Line Stitch',
-                    icon: 'fa-slash',
-                    command: 'L',
-                    enabled: false,
+                    icon: 'fa-pen-nib',
+                    command: 'P',
+                    isEnabled: false,
 
                     draw: (sk) => {
                         if (!this.isCursorInbounds(false)) { return }
@@ -547,8 +625,10 @@ new Vue({
 
                         this.templine = this.templine ?? []
 
+                        let color = this.getColor()
+
                         sk.noCursor()
-                        sk.stroke(this.layers[this.settings.selectedLayer].color)
+                        sk.stroke(color.hex)
                         sk.strokeWeight(6)
                         sk.point(mx * tilesize, my * tilesize)
 
@@ -556,7 +636,7 @@ new Vue({
                             let [x1, y1] = this.templine
 
                             sk.strokeWeight(3)
-                            sk.stroke(this.layers[this.settings.selectedLayer].color)
+                            sk.stroke(color.hex)
                             sk.line(x1 * tilesize, y1 * tilesize, mx * tilesize, my * tilesize)
                         }
                     },
@@ -579,7 +659,7 @@ new Vue({
                         this.templine.push(x, y)
 
                         if (this.templine.length >= 4) {
-                            this.lines.push([...this.templine, this.settings.selectedLayer])
+                            this.lines.push([...this.templine, this.settings.selectedColorId])
 
                             this.templine = []
                             this.templine.push(x,y)
@@ -598,8 +678,28 @@ new Vue({
     },
 
 
-    computed: {
+    watch: {
+        colorsQuery: function(query) {
+            if (this.debounceTimeoutColorSearch) {
+                clearTimeout(this.debounceTimeoutColorSearch)
+            }
+
+            this.isSearchingColors = true
+
+            this.debounceTimeoutColorSearch = setTimeout(() => {
+                this.colorResults = COLORS.filter(el => {
+                        let filterStr = this.colorsQuery.toLowerCase()
+                        if (String(el.anchor).toLowerCase().includes(filterStr)) { return true }
+                        if (String(el.dmc).toLowerCase().includes(filterStr)) { return true }
+                        if (String(el.txt).toLowerCase().includes(filterStr)) { return true }
+                    }, this)
+
+                this.isSearchingColors = false
+            }, 300)
+        },
+
     },
+
 
 
     methods: {
@@ -629,11 +729,12 @@ new Vue({
 
             this.drawGrid(sk)
 
-            this.drawLines(sk)
+            this.drawLoop(sk)
 
-            this.drawDebug(sk)
+            // this.drawLines(sk)
 
-            // this.drawRuler(sk)
+            // this.drawDebug(sk)
+
             if (this.activeTool?.draw) {
                 this.activeTool.draw(sk)
             }
@@ -648,9 +749,8 @@ new Vue({
 
 
         keypressed(sk) {
-            if (sk.isComposing || sk.keyCode === 229) {
-                return
-            }
+
+            if (sk.isComposing || sk.keyCode === 229) { return }
 
             let res = null
             let cmd = this.getKeyCommand(sk.key)
@@ -732,13 +832,19 @@ new Vue({
 
             let [xmin, ymin, xmax, ymax] = this.getDesignPixelDimensions()
 
+            // draw design background color
             sk.strokeWeight(2)
             sk.stroke(this.settings.gridLineColor)
             sk.fill(this.settings.gridBackgroundColor)
             sk.rect(xmin, ymin, xmax, ymax)
 
 
-            Object.keys(this.tiles).forEach((key, el) => {
+            let tiles   = Object.keys(this.tiles)
+            let tindex  = tiles.length-1
+
+            while (tindex >= 0) {
+
+                let key = tiles[tindex]
 
                 if (!this.tiles.hasOwnProperty(key)) { return }
 
@@ -746,19 +852,54 @@ new Vue({
 
                 if (x1 < 0 || y1 < 0) { return }
 
-                if (!this.getDrawColorIsVisible(colorId)) { return }
+                // if (!this.getDrawColorIsVisible(colorId)) { return }
+
+                let color = this.getColor(colorId)
+
+                if (!color) { return }
 
                 this.drawTile({
                     x1, y1,
-                    fill: this.getDrawColor(colorId),
+                    fill: color.hex,
                     strokeWeight: 0,
+                    symbol: color.symbol,
+                    symbolColor: color.symbolColor
                 })
 
                 // sk.strokeWeight(0)
                 // sk.fill(this.getDrawColor(colorId))
                 // sk.square(Number(x) * tilesize, Number(y) * tilesize, tilesize)
 
-            }, this)
+                tindex -= 1
+            }
+
+
+
+            // Object.keys(this.tiles).forEach((key, el) => {
+
+            //     if (!this.tiles.hasOwnProperty(key)) { return }
+
+            //     let [x1, y1, colorId] = this.tiles[key]
+
+            //     if (x1 < 0 || y1 < 0) { return }
+
+            //     // if (!this.getDrawColorIsVisible(colorId)) { return }
+
+            //     let color = this.getColor(colorId)
+
+            //     this.drawTile({
+            //         x1, y1,
+            //         fill: color.hex,
+            //         strokeWeight: 0,
+            //         symbol: color.symbol,
+            //         symbolColor: color.symbolColor
+            //     })
+
+            //     // sk.strokeWeight(0)
+            //     // sk.fill(this.getDrawColor(colorId))
+            //     // sk.square(Number(x) * tilesize, Number(y) * tilesize, tilesize)
+
+            // }, this)
         },
 
 
@@ -774,7 +915,7 @@ new Vue({
 
                 let [x1, y1, x2, y2, colorIndex] = el
 
-                sk.stroke(this.layers[colorIndex].color)
+                sk.stroke(this.settings.designColors[colorIndex].color)
                 sk.line(x1 * tilesize, y1 * tilesize, x2 * tilesize, y2 * tilesize)
 
             })
@@ -925,38 +1066,27 @@ new Vue({
             // sk.text(`${this.activeTool?.name || ''} | ${x}, ${y}`, this.settings.gridWidth / 4 * tilesize, this.settings.gridHeight * tilesize + 30)
         },
 
+        drawLoop(sk) {
 
-        drawCursor() {
+            if (!this.settings.showLoop) { return }
 
-            let sk = this.sketch
+            let [xmin, ymin, xmax, ymax] = this.getDesignCoords()
 
-            let origin      = 0 - this.originOffset
-            let tilesize    = this.settings.tilesize
-            let width       = this.settings.gridWidth
-            let height      = this.settings.gridHeight
+            let tilesize = this.settings.tilesize
 
-            let x = origin + Math.floor(sk.mouseX / tilesize) * tilesize
-            let y = origin + Math.floor(sk.mouseY / tilesize) * tilesize
+            let centerX = this.gridCenterX
+            let centerY = this.gridCenterY
 
+            let diameter = sk.min(xmax, ymax) * tilesize
 
-
-            // draw square cursor
-
-            sk.noCursor()
-
-            if (this.settings.showCursorMarkers) {
-                sk.fill('rgba(0,0,0,0.15)')
-                sk.strokeWeight(2)
-
-                sk.square(x, 0, tilesize)
-                sk.square(0, y, tilesize)
-                sk.square(x, (height - 1) * tilesize,    tilesize)
-                sk.square((width - 1) * tilesize,   y,                 tilesize)
-            }
+            // let xCenter = xmax / 2 * tilesize
+            // let xCenter = ymax / 2
 
             sk.fill(0,0,0,0)
-            sk.stroke(this.getDrawColor())
-            sk.square(x, y, tilesize)
+            sk.strokeWeight(3)
+            sk.stroke(this.settings.loopColor)
+            sk.circle(centerX, centerY, diameter )
+
         },
 
 
@@ -1002,7 +1132,40 @@ new Vue({
         },
 
 
-        interpolateLine(x0, y0, x1, y1) {
+        drawCursor() {
+
+            let sk = this.sketch
+
+            let origin      = 0 - this.originOffset
+            let tilesize    = this.settings.tilesize
+            let width       = this.settings.gridWidth
+            let height      = this.settings.gridHeight
+
+            let x = origin + Math.floor(sk.mouseX / tilesize) * tilesize
+            let y = origin + Math.floor(sk.mouseY / tilesize) * tilesize
+
+            // draw square cursor
+
+            // sk.noCursor()
+
+            if (this.settings.showCursorMarkers) {
+                sk.fill('rgba(0,0,0,0.15)')
+                sk.strokeWeight(2)
+
+                sk.square(x, 0, tilesize)
+                sk.square(0, y, tilesize)
+                sk.square(x, (height - 1) * tilesize,   tilesize)
+                sk.square((width - 1) * tilesize,   y,  tilesize)
+            }
+
+            sk.fill(0,0,0,0)
+            sk.stroke(this.getDrawColor())
+            sk.square(x, y, tilesize)
+        },
+
+
+        drawTriangle(x, y, size, dir, color=BLACK) {
+            let sk = this.sketch
 
             // let [dx, dy] = deltaXY(x1, y1, x2, y2)
 
@@ -1075,8 +1238,63 @@ new Vue({
                 )
             }
 
+
+
+            if (opts.symbol) {
+                let halftile = Math.floor(tilesize / 2)
+
+                sk.textSize(tilesize * 0.75)
+                sk.textAlign(sk.CENTER)
+                sk.fill(opts.symbolColor ?? BLACK)
+                sk.noStroke()
+                sk.text(opts.symbol, opts.x1 * tilesize + halftile, opts.y1 * tilesize + (halftile * 1.5))
+            }
+
         },
 
+
+        /**
+         * Interpolates a series of pixels along a given slope between x1,y1 and x2,y2
+         *
+         * @sauce: https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+         *
+         * @param      {number}  x0      The x 0
+         * @param      {number}  y0      The y 0
+         * @param      {number}  x1      The x 1
+         * @param      {number}  y1      The y 1
+         * @return     {Array}   { description_of_the_return_value }
+         */
+        interpolateLine(x0, y0, x1, y1) {
+
+            let tiles = []
+
+            if (x0 === x1 && y0 === y1) { return tiles }
+
+            let dx = Math.abs(x1-x0)
+            let sx = x0 < x1 ? 1 : -1
+            let dy = -Math.abs(y1-y0)
+            let sy = y0<y1 ? 1 : -1
+            let err = dx+dy  /* error value e_xy */
+
+            while (true) {  /* loop */
+                tiles.push([x0, y0]);
+
+                if (x0 == x1 && y0 == y1) { break }
+
+                let e2 = 2 * err;
+
+                if (e2 >= dy) { /* e_xy+e_x > 0 */
+                    err += dy;
+                    x0 += sx;
+                }
+                if (e2 <= dx) { /* e_xy+e_y < 0 */
+                    err += dx;
+                    y0 += sy;
+                }
+            }
+
+            return tiles
+        },
 
 
         // ========================================
@@ -1100,7 +1318,12 @@ new Vue({
         },
 
 
-        isCursorInbounds(inclusive = true) {
+        isCursorInbounds(inclusive = true, event) {
+
+            if (event) {
+                console.debug('isCursorInbounds', event)
+            }
+
             let [mx, my]    = this.getMouseCoords()
             let [xmin, ymin, xmax, ymax] = this.getDesignCoords(inclusive)
 
@@ -1158,6 +1381,8 @@ new Vue({
 
         changeActiveTool(tool) {
 
+            if (this.settings.designColors.length < 1) { return }
+
             let isSameTool = tool?.name === this.activeTool?.name
             let isToolActive = tool?.isActive
 
@@ -1178,22 +1403,53 @@ new Vue({
         //  APP UI METHODS
         // ==============================
 
-        newLayer() {
-            let hexColor = randomHex()
+        initNewColor() {
+
+
+            this.tempColor = {
+                label: null,
+                symbol: null,
+                stitchCount: 3,
+                hex: null,
+            }
+
+            this.openDialog(MODAL_NEW_COLOR)
+
+        },
+
+
+        // filterColorsList() {
+
+        //     let filterString = this.colorsQuery
+
+        //     if (!isEmpty(filterString)) {
+        //         this.filteredColors = COLORS
+        //         return
+        //     }
+
+        //     this.filteredColors = searchColors(filterString)
+
+        //     // this.colorsQuery = this.colorsList
+
+        // },
+
+
+        addNewColor() {
+            // let hexColor = randomHex()
+
+            this.tempColor = Object.assign(
+                {},
+                this.tempColor,
+                COLORS.find(el => el.id === this.tempColor.id, this)
+            )
 
             this.settings.colorCounter += 1
+            this.tempColor.id   = this.settings.colorCounter
 
-            this.layers.unshift({
-                title:  `Layer ${this.layers.length}`,
-                color:  hexColor, // '#5fd12e',
-                id:     this.settings.colorCounter,
-                // threadCount:  2,
-                // stitchType:   1,
-                editingtitle: false,
-                icon: null,
-                iconColor: getContrastYIQ(hexColor),
-                // tiles: [],
-            })
+            this.tempColor.symbolColor = getContrastYIQ(this.tempColor.hex)
+
+            // console.debug('addNewColor', this.tempColor)
+            this.settings.designColors.push(this.tempColor)
 
             this.updateColorMap()
 
@@ -1201,10 +1457,28 @@ new Vue({
         },
 
 
-        deleteLayer(index) {
-            if (this.layers.length - 1 < 1) { return }
-            // let nextIndex = index
-            this.layers.splice(index, 1)
+        deleteColor() {
+
+            if (this.settings.designColors.length - 1 < 1) { return }
+            let index = this.settings.designColorMap[this.settings.selectedColorId]
+            let color = this.settings.designColors[index]
+
+            console.debug('deletColor', index, color)
+
+            Object.keys(this.tiles)
+                .filter(el => {
+                    el[2] !== color.id
+                })
+                .forEach(coord => {
+                    console.debug('deleteColor', coord, this.tiles[coord])
+                    if (!this.tiles.hasOwnProperty(coord)) { return }
+                    delete(this.tiles[coord])
+                }, this)
+
+
+            this.settings.designColors.splice(index, 1)
+
+            this.settings.selectedColorId = this.settings.designColors[index]
 
             this.updateColorMap()
 
@@ -1212,48 +1486,77 @@ new Vue({
         },
 
 
-        selectLayer(colorId) {
-            this.settings.selectedLayer = colorId
+        selectLayer(index) {
+            this.settings.selectedColorId = this.settings.designColors[index].id
             this.save()
         },
 
 
         nextLayer(direction) {
-            let index = this.settings.colorMap[this.settings.selectedLayer]
+            // let index = this.settings.designColorMap[this.settings.selectedColorId]
+            if (this.settings.designColors.length < 2) { return }
+
+            let index = this.settings.selectedColorId
             index += direction
-            index = this.sketch.constrain(index, 0, this.layers.length -1)
-            this.settings.selectedLayer = this.layers[index].id
-            this.save()
+
+            if (index < 0) { index = this.settings.designColors.length - 1}
+            if (index >= this.settings.designColors.length) { index = 0 }
+
+            this.settings.selectedColorId = index
+
+            this.save(false)
         },
 
 
         getDrawColorIsVisible(colorId = null) {
-            colorId = colorId ?? this.settings.selectedLayer
-            let index = this.settings.colorMap[colorId]
-            return this.layers[index].isVisible
+            return this.getColor(colorId)?.isVisible ?? true
         },
 
 
         getDrawColor(colorId = null) {
-            colorId = colorId ?? this.settings.selectedLayer
-            let index = this.settings.colorMap[colorId]
-            return this.layers[index].color
+            return this.getColor(colorId)?.hex
+        },
+
+
+        getDrawSymbol(colorId = null) {
+            return this.getColor(colorId)?.symbol
+        },
+
+
+        getDrawSymbolColor(colorId = null) {
+            return this.getColor(colorId)?.symbolColor
+        },
+
+
+        getColor(colorId = null) {
+
+            colorId = colorId ?? this.settings.selectedColorId
+
+            let colorIndex = this.settings.designColorMap[colorId]
+
+            return this.settings.designColors[colorIndex]
+            // let color = this.settings.designColors.find(el => el.id === colorId)
+
+            // let index = this.settings.designColorMap[colorId]
+            // return color
         },
 
 
         updateColorMap() {
-            this.settings.colorMap = {}
+            this.settings.designColorMap = {}
 
-            this.layers.forEach((el, index) => {
-                this.settings.colorMap[el.id] = index
+            this.settings.designColors.forEach((el, index) => {
+                this.settings.designColorMap[el.id] = index
             }, this)
+
+            console.debug('udpate designColorMap', this.settings.designColorMap)
         },
 
 
         moveLayer(index, dir) {
-            let res = this.layers[index]
-            this.layers.splice(index, 1)
-            this.layers.splice(index + dir, 0, res)
+            let res = this.settings.designColors[index]
+            this.settings.designColors.splice(index, 1)
+            this.settings.designColors.splice(index + dir, 0, res)
 
             this.updateColorMap()
 
@@ -1262,22 +1565,36 @@ new Vue({
 
 
         toggleLayerVisibility(index) {
-            this.layers[index].isVisible = !this.layers[index].isVisible
+            this.settings.designColors[index].isVisible = !this.settings.designColors[index].isVisible
         },
 
 
         zoomGrid(zoom) {
             this.settings.tilesize += zoom
 
-            this.settings.tilesize = this.sketch.constrain(this.settings.tilesize, this.settings.tilesizeMin, this.settings.tilesizeMax)
+            this.settings.tilesize = constrain(this.settings.tilesize, this.settings.tilesizeMin, this.settings.tilesizeMax)
             // console.debug('zoomGrid', this.settings.tilesize)
 
             this.adjustGrid()
         },
 
 
-        nudgeDesign(x, y) {
-            console.debug('nudgeDesign', x, y)
+        nudgeDesign(xdir, ydir) {
+            console.debug('nudgeDesign', xdir, ydir)
+
+            let tiles = Object.keys(this.tiles).sort()
+
+            console.debug('tiles pre', tiles)
+
+            if (xdir < 0 || ydir < 0) {
+                // tiles = tiles.reverse()
+            }
+
+            // tiles = tiles.map((el, index) => {
+
+            // }, this)
+
+            console.debug('tiles post', tiles)
         },
 
 
@@ -1331,8 +1648,7 @@ new Vue({
         },
 
 
-
-        floodFill(x, y, visited, startColor, drawColor, a, b, c, d) {
+        floodFill(x, y, visited, startColorId, drawColorId, a, b, c, d) {
             let coord       = `${x},${y}`
             let coordColor  = this.tiles[coord]
 
@@ -1341,8 +1657,8 @@ new Vue({
             if (x >= c || y >= d) { return }
             if (x < a || y < b) { return }
             if (visited[coord] === true) { return }
-            if (coordColor !== startColor) { return }
-            if (coordColor === drawColor) { return }
+            if (coordColor !== startColorId) { return }
+            if (coordColor === drawColorId) { return }
 
             visited[coord] = true
 
@@ -1350,11 +1666,12 @@ new Vue({
             // x-1,y   | x,y   | x+1,y
             // x-1,y+1 | x,y+1 | x+1,y+1
 
-            this.floodFill(x-1, y,   visited, startColor, drawColor, a, b, c, d)
-            this.floodFill(x+1, y,   visited, startColor, drawColor, a, b, c, d)
-            this.floodFill(x,   y-1, visited, startColor, drawColor, a, b, c, d)
-            this.floodFill(x,   y+1, visited, startColor, drawColor, a, b, c, d)
-            // floodFill(x-1, y-1, visited, n, m)
+
+            this.floodFill(x-1, y,   visited, startColorId, drawColorId, a, b, c, d)
+            this.floodFill(x+1, y,   visited, startColorId, drawColorId, a, b, c, d)
+            this.floodFill(x,   y-1, visited, startColorId, drawColorId, a, b, c, d)
+            this.floodFill(x,   y+1, visited, startColorId, drawColorId, a, b, c, d)
+            // this.floodFill(x-1, y-1, visited, startColorId, drawColorId, a, b, c, d)
             // floodFill(x-1, y+1, visited, n, m)
             // floodFill(x+1, y-1, visited, n, m)
             // floodFill(x+1, y+1, visited, n, m)
@@ -1368,7 +1685,9 @@ new Vue({
         //  DATA/SESSION METHODS
         // =============================================
 
-        save() {
+        save(trackUndo = true) {
+
+            console.debug('save triggered')
 
             // normalize copyright date
             let design = this.design
@@ -1380,14 +1699,17 @@ new Vue({
 
 
             let data = {
-                layers:     this.layers,
-                settings:   this.settings,
-                tiles:      this.tiles,
-                lines:      this.lines,
+                settings:       this.settings,
+                tiles:          this.tiles,
+                lines:          this.lines,
                 design,
             }
 
-            localStorage.setItem('designdata', JSON.stringify(data))
+            if (trackUndo) {
+                // this.updateUndo(data)
+            }
+
+            localStorage.setItem(LS_DESIGN_DATA, JSON.stringify(data))
 
             if (this.design.owner) {
                 localStorage.setItem('copyrightOwner', this.design.owner)
@@ -1403,35 +1725,86 @@ new Vue({
             // let data = window.location.hash.substr(1)
             // if (data.trim().length === 0) { return }
 
-            this.design = this.design || {}
+            data = data ?? localStorage.getItem(LS_DESIGN_DATA)
 
-            let copyrightOwner = localStorage.getItem('copyrightOwner')
+            if (data) {
 
-            if (copyrightOwner) {
-                this.design.owner = copyrightOwner
+                data = JSON.parse(data)
+
+                this.unpack(data)
             }
 
-            data = data ?? localStorage.getItem('designdata')
+            this.updateColorMap()
+            // this.selectLayer(this.settings.selectedColorId)
+            this.setPageTitle(this.design.title)
+            // this.readUndo()
+        },
 
-            if (!data) { return }
 
-            data = JSON.parse(data)
+        unpack(data) {
+            let designerName = localStorage.getItem(LS_COPYRIGHT_DATA)
 
-            this.layers     = data.layers
-            this.tiles      = data.tiles
-            this.lines      = data.lines
-            this.settings   = Object.assign({}, this.settings, data.settings)
+            // this.settings.designColors   = data?.colors ?? data?.layers ?? data?.designColors ?? []
+            this.tiles          = data.tiles ?? {}
+            this.lines          = data.lines ?? {}
+            this.settings       = Object.assign({}, this.settings, data.settings)
 
             data.design.copyright = new Date(data.design.copyright)
             this.design     = data.design
 
-            if (copyrightOwner) {
-                this.design.owner = copyrightOwner
+            if (designerName && !this.design.designer) {
+                this.design.designer = designerName
+            }
+        },
+
+
+        updateUndo(state) {
+
+            // if we're on an earlier snapshot, flush all undone changes before prepending new snapshots
+            if (this.undoIndex > 0) {
+                this.undoList = this.undoList.slice(this.undoIndex)
             }
 
-            this.updateColorMap()
-            this.selectLayer(this.settings.selectedLayer)
-            this.setPageTitle(this.design.title)
+            this.undoList.unshift(Object.assign({}, state))
+
+            this.undoIndex = 0
+
+            if (this.undoList.length > this.undoLimit) {
+                console.warn('undoLimit exceeded', this.undoList.length, this.undoLimit)
+
+                this.undoList = this.undoList.slice(0, this.undolimit)
+            }
+
+            let data = {
+                list: this.undoList,
+                index: this.undoIndex,
+            }
+
+            localStorage.setItem(LS_UNDO_DATA, JSON.stringify(data))
+
+        },
+
+
+        readUndo() {
+            let undo = localStorage.getItem(LS_UNDO_DATA)
+
+            if (!undo) { return }
+
+            undo = JSON.parse(undo)
+
+            console.debug('reading undo')
+
+            this.undoList = undo.list
+            this.undoIndex = undo.index
+        },
+
+
+        undo(direction = 1) {
+            this.undoIndex = constrain(this.undoIndex + direction, 0, this.undoList.length - 1)
+
+            console.debug('undo triggered', this.undoIndex, this.undoList[this.undoIndex])
+
+            this.unpack(this.undoList[this.undoIndex])
         },
 
 
@@ -1446,21 +1819,44 @@ new Vue({
         },
 
 
+        openDialog(domId) {
+            // this.haltKeyMonitoring()
+            let dialog = document.querySelector(domId)
+
+            if (dialog.open) {
+                dialog.close()
+            } else {
+                dialog.showModal()
+            }
+        },
+
+
+        getContrast(value) {
+            if (!value) { return BLACK }
+            return getContrastYIQ(value)
+        },
+
+
+        // confirmDialoge(domId)
+
     },
 
+    created() {
+
+
+    },
 
     mounted() {
 
         this.load()
 
-        this.settings.selectedLayer = this.settings.selectedLayer ?? this.layers[0]
+        this.settings.selectedColorId = this.settings.selectedColorId ?? this.settings.designColors[0].id
+
+        this.updateColorMap()
+        // this.selectLayer(this.settings.selectedColorId)
+        this.setPageTitle(this.design.title)
 
         document.body.classList.remove('no-js')
-
-    },
-
-
-    created() {
 
     },
 
@@ -1470,11 +1866,20 @@ new Vue({
             return Number.parseFloat(value).toFixed(decimals)
         },
 
+        abs(value) {
+            return Math.abs(Number.parseFloat(value))
+        },
+
+        contrast(value) {
+            return getContrastYIQ(value)
+        },
+
         datetime(datetime, format='YYYY-mm-dd') {
             datetime = datetime ? datetime : new Date()
             return dayjs(datetime).format(format)
         }
     }
+
 })
 
 
@@ -1516,21 +1921,32 @@ function queryStringEncode(obj) {
 }
 
 
-function debounce(func, wait, immediate) {
-    var timeout
-    return function() {
-        var context = this, args = arguments
-        var later = function() {
-            timeout = null
-            if (!immediate) func.apply(context, args)
-        }
-        var callNow = immediate && !timeout
-        clearTimeout(timeout)
-        timeout = setTimeout(later, wait)
-        if (callNow) func.apply(context, args)
+// function debounce(func, wait, immediate) {
+//     var timeout
+//     return function() {
+//         var context = this, args = arguments
+//         var later = function() {
+//             timeout = null
+//             if (!immediate) func.apply(context, args)
+//         }
+//         var callNow = immediate && !timeout
+//         clearTimeout(timeout)
+//         timeout = setTimeout(later, wait)
+//         if (callNow) func.apply(context, args)
+//     }
+// }
+
+function debounce(fn, delay) {
+    var timeoutID = null
+    return function () {
+        clearTimeout(timeoutID)
+        var args = arguments
+        var that = this
+        timeoutID = setTimeout(function () {
+            fn.apply(that, args)
+        }, delay)
     }
 }
-
 
 function indexToXY(index, width, height) {
     if (index > width * height) { return [ null, null ] }
@@ -1625,3 +2041,18 @@ function isEmpty(val) {
 
     return false
 }
+
+
+
+/**
+ * constrains a number to the lower and upper bounds of a given range
+ * @sauce: https://github.com/processing/p5.js/blob/main/src/math/calculation.js#L113
+ * @param      {<type>}  n       { parameter_description }
+ * @param      {<type>}  low     The low
+ * @param      {<type>}  high    The high
+ * @return     {<type>}  { description_of_the_return_value }
+ */
+function constrain(n, low, high) {
+    return Math.max(Math.min(n, high), low);
+}
+
