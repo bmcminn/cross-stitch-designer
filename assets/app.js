@@ -135,6 +135,7 @@ new Vue({
             originOffset: 0,
 
 
+            isMouseDragging: false,
             ruler: [],
 
             tempcoords: [],
@@ -334,6 +335,11 @@ new Vue({
 
                         if (this.tiles[coord]) { delete this.tiles[coord] }
 
+                        return false
+                    },
+
+                    mouseReleased: (sk) => {
+                        this.isMouseDragging = false
                         this.save()
 
                         return false
@@ -414,6 +420,7 @@ new Vue({
                     mouseReleased: (sk) => {
                         this.isMouseDragging = false
                         this.save()
+
                     },
 
                     toolChanged: (sk) => {
@@ -512,6 +519,7 @@ new Vue({
                     draw: (sk) => {
                         if (!this.isCursorInbounds()) { return }
                         this.drawCursor()
+
                     },
 
                     keyPressed: (sk) => {
@@ -556,6 +564,7 @@ new Vue({
                         }, this)
 
                         this.save()
+
                     },
 
                     toolChanged: (sk) => {
@@ -754,6 +763,7 @@ new Vue({
 
             let res = null
             let cmd = this.getKeyCommand(sk.key)
+
 
             if (this.actions[cmd]) {
                 res = this.actions[cmd]()
@@ -1573,6 +1583,7 @@ new Vue({
             this.settings.tilesize += zoom
 
             this.settings.tilesize = constrain(this.settings.tilesize, this.settings.tilesizeMin, this.settings.tilesizeMax)
+
             // console.debug('zoomGrid', this.settings.tilesize)
 
             this.adjustGrid()
@@ -1843,7 +1854,26 @@ new Vue({
 
     created() {
 
+        moveColor(index, dir) {
+            let res = this.colors[index]
+            this.colors.splice(index, 1)
+            this.colors.splice(index + dir, 0, res)
 
+            this.updateColorMap()
+
+            this.save()
+        },
+
+
+        updateColorMap() {
+            this.colorMap = {}
+
+            this.colors.forEach((el, index) => {
+                this.colorMap[el.id] = index
+            }, this)
+
+            console.debug('colorMap update', this.colorMap)
+        }
     },
 
     mounted() {
