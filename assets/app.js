@@ -11,69 +11,70 @@ const MODAL_DOCUMENT_INFO   = 'documentInfo'
 const MODAL_SELECTED_COLOR  = 'colorEditPanel'
 const MODAL_NEW_COLOR       = 'newColorPanel'
 
+
 const LS_DESIGN_DATA = 'designdata'
 const LS_COPYRIGHT_DATA = 'copyright'
 const LS_UNDO_DATA = 'undo'
 
 
-Vue.component('color-edit-component', {
-    data() {
-        return {
-            filteredColors: COLORS,
-            colorResults: COLORS,
-            colorsQuery: '',
-            debounceTimeoutColorSearch: null,
-            isSearchingColors: false,
+// Vue.component('color-edit-component', {
+//     data() {
+//         return {
+//             filteredColors: COLORS,
+//             colorResults: COLORS,
+//             colorsQuery: '',
+//             debounceTimeoutColorSearch: null,
+//             isSearchingColors: false,
 
-            tempColor: {},
-            symbolsList: [
-                '▰',
-                '○', '●',
-                '◇', '◆',
-                '✔',
-                '★','☆',
-                '1','2','3','4','5','6','7','8','9','0',
-                // '✱',
-                '•',
-                '*',
-                '×',
-                '=',
-                '⸫',
-                '¬',
-                '–',
-            ],
-        }
-    },
+//             tempColor: {},
+//             symbolsList: [
+//                 '▰',
+//                 '○', '●',
+//                 '◇', '◆',
+//                 '✔',
+//                 '★','☆',
+//                 '1','2','3','4','5','6','7','8','9','0',
+//                 // '✱',
+//                 '•',
+//                 '*',
+//                 '×',
+//                 '=',
+//                 '⸫',
+//                 '¬',
+//                 '–',
+//             ],
+//         }
+//     },
 
-    methods: {
+//     methods: {
 
-    },
-
-
-    watch: {
-        colorsQuery: function(query) {
-            if (this.debounceTimeoutColorSearch) {
-                clearTimeout(this.debounceTimeoutColorSearch)
-            }
-
-            this.isSearchingColors = true
-
-            this.debounceTimeoutColorSearch = setTimeout(() => {
-                this.colorResults = COLORS.filter(el => {
-                        let filterStr = this.settings.designColorsQuery.toLowerCase()
-                        if (String(el.anchor).toLowerCase().includes(filterStr)) { return true }
-                        if (String(el.dmc).toLowerCase().includes(filterStr)) { return true }
-                        if (String(el.txt).toLowerCase().includes(filterStr)) { return true }
-                    }, this)
-
-                this.isSearchingColors = false
-            }, 300)
-        },
-
-    },
+//     },
 
 
-})
+//     watch: {
+//         colorsQuery: function(query) {
+//             if (this.debounceTimeoutColorSearch) {
+//                 clearTimeout(this.debounceTimeoutColorSearch)
+//             }
+
+//             this.isSearchingColors = true
+
+//             this.debounceTimeoutColorSearch = setTimeout(() => {
+//                 this.colorResults = COLORS.filter(el => {
+//                         let filterStr = this.settings.designColorsQuery.toLowerCase()
+//                         if (String(el.anchor).toLowerCase().includes(filterStr)) { return true }
+//                         if (String(el.dmc).toLowerCase().includes(filterStr)) { return true }
+//                         if (String(el.txt).toLowerCase().includes(filterStr)) { return true }
+//                     }, this)
+
+//                 this.isSearchingColors = false
+//             }, 300)
+//         },
+
+//     },
+
+
+// })
 
 
 new Vue({
@@ -136,6 +137,7 @@ new Vue({
             originOffset: 0,
 
 
+            isMouseDragging: false,
             ruler: [],
 
             tempcoords: [],
@@ -335,6 +337,11 @@ new Vue({
 
                         if (this.tiles[coord]) { delete this.tiles[coord] }
 
+                        return false
+                    },
+
+                    mouseReleased: (sk) => {
+                        this.isMouseDragging = false
                         this.save()
 
                         return false
@@ -689,11 +696,11 @@ new Vue({
 
             this.debounceTimeoutColorSearch = setTimeout(() => {
                 this.colorResults = COLORS.filter(el => {
-                        let filterStr = this.settings.designColorsQuery.toLowerCase()
-                        if (String(el.anchor).toLowerCase().includes(filterStr)) { return true }
-                        if (String(el.dmc).toLowerCase().includes(filterStr)) { return true }
-                        if (String(el.txt).toLowerCase().includes(filterStr)) { return true }
-                    }, this)
+                    let filterStr = this.settings.designColorsQuery.toLowerCase()
+                    if (String(el.anchor).toLowerCase().includes(filterStr)) { return true }
+                    if (String(el.dmc).toLowerCase().includes(filterStr)) { return true }
+                    if (String(el.txt).toLowerCase().includes(filterStr)) { return true }
+                }, this)
 
                 this.isSearchingColors = false
             }, 300)
@@ -755,6 +762,7 @@ new Vue({
 
             let res = null
             let cmd = this.getKeyCommand(sk.key)
+
 
             if (this.actions[cmd]) {
                 res = this.actions[cmd]()
@@ -874,52 +882,6 @@ new Vue({
                 tindex -= 1
             }
 
-
-
-            // Object.keys(this.tiles).forEach((key, el) => {
-
-            //     if (!this.tiles.hasOwnProperty(key)) { return }
-
-            //     let [x1, y1, colorId] = this.tiles[key]
-
-            //     if (x1 < 0 || y1 < 0) { return }
-
-            //     // if (!this.getDrawColorIsVisible(colorId)) { return }
-
-            //     let color = this.getColor(colorId)
-
-            //     this.drawTile({
-            //         x1, y1,
-            //         fill: color.hex,
-            //         strokeWeight: 0,
-            //         symbol: color.symbol,
-            //         symbolColor: color.symbolColor
-            //     })
-
-            //     // sk.strokeWeight(0)
-            //     // sk.fill(this.getDrawColor(colorId))
-            //     // sk.square(Number(x) * tilesize, Number(y) * tilesize, tilesize)
-
-            // }, this)
-        },
-
-
-        drawLines(sk) {
-
-            if (!this.lines) { return }
-
-            let tilesize = this.settings.tilesize
-
-            sk.strokeWeight(3)
-
-            this.lines.forEach((el, index) => {
-
-                let [x1, y1, x2, y2, colorIndex] = el
-
-                sk.stroke(this.settings.designColors[colorIndex].color)
-                sk.line(x1 * tilesize, y1 * tilesize, x2 * tilesize, y2 * tilesize)
-
-            })
         },
 
 
@@ -1091,6 +1053,25 @@ new Vue({
         },
 
 
+        drawLines(sk) {
+
+            if (!this.lines) { return }
+
+            let tilesize = this.settings.tilesize
+
+            sk.strokeWeight(3)
+
+            this.lines.forEach((el, index) => {
+
+                let [x1, y1, x2, y2, colorIndex] = el
+
+                sk.stroke(this.layers[colorIndex].color)
+                sk.line(x1 * tilesize, y1 * tilesize, x2 * tilesize, y2 * tilesize)
+
+            })
+        },
+
+
         drawCenterMarker(sk) {
             if (!this.settings.showCenterCross) { return }
 
@@ -1183,6 +1164,7 @@ new Vue({
             opts = Object.assign({}, defaults, opts)
 
             if (!opts.x1 && !opts.y1) { return }
+
 
             sk.stroke(opts.strokeColor)
             sk.strokeWeight(opts.strokeWeight)
@@ -1615,7 +1597,6 @@ new Vue({
             // x-1,y   | x,y   | x+1,y
             // x-1,y+1 | x,y+1 | x+1,y+1
 
-
             this.floodFill(x-1, y,   visited, startColorId, drawColorId, a, b, c, d)
             this.floodFill(x+1, y,   visited, startColorId, drawColorId, a, b, c, d)
             this.floodFill(x,   y-1, visited, startColorId, drawColorId, a, b, c, d)
@@ -1764,6 +1745,7 @@ new Vue({
                 history.pushState(null, null, `#${data}`)
             } else {
                 window.location.hash = `#${data}`
+
             }
         },
 
@@ -1790,6 +1772,7 @@ new Vue({
             let res = this.settings.designColors[index]
             this.settings.designColors.splice(index, 1)
             this.settings.designColors.splice(index + dir, 0, res)
+
 
             this.updateColorMap()
 
