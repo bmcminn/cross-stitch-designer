@@ -276,7 +276,7 @@
 
 
 
-        <dialog id="favDialog">
+        <dialog :id="MODAL_DOCUMENT_INFO">
           <form method="dialog">
             <div class='h3'>Document Information</div>
                 <div class="form-group">
@@ -403,7 +403,7 @@
 
 
 
-                <menu>
+                <menu class="text-end">
                     <button value="cancel">Cancel</button>
                     <button id="confirmDocumentSettingsEdits" value="default">Confirm</button>
                 </menu>
@@ -412,7 +412,7 @@
 
 
 
-        <dialog id="newColorPanel">
+        <dialog :id="MODAL_NEW_COLOR">
             <form method="dialog">
                 <div class='h3'>Add New Color</div>
 
@@ -472,9 +472,12 @@
                 </div>
 
 
-                <menu>
-                    <button value="cancel">Cancel</button>
+                <menu class="text-end">
+                    <button class="btn--secondary"
+                        value="cancel">Cancel</button>
+
                     <button id="confirmAddColor"
+                        class="btn btn--primary"
                         value="default"
                         @click="addNewColor"
                     >Add Color</button>
@@ -513,7 +516,7 @@
                     </ul>
                 </details>
 
-                <menu>
+                <menu class="text-end">
                     <button value="cancel">Cancel</button>
                     <button id="confirmEditColor"
                         value="default"

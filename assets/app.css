@@ -58,13 +58,30 @@ h1 { font-size: 1.5em; }
 
 button {
     appearance: none;
-    border: 1px solid var(--button-border-color--selected);
+    border: 1px solid #d3d3d3;
+    padding: 0.5em;
+    line-height: 1em;
+    border-radius: 0.5em;
 }
 
 button[selected] {
     background-color: var(--button-border-color--selected);
     color: #fff;
 }
+
+
+.btn--primary {
+    border-color: var(--button-border-color);
+    background-color: var(--button-border-color);
+    color: white;
+}
+
+.btn--secondary {
+    border-color: var(--button-border-color);
+    background-color: white;
+    color: var(--button-border-color);
+}
+
 
 
 button:hover {

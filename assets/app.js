@@ -7,9 +7,9 @@ const BLACK         = '#000000'
 const DEBUG_COLOR   = '#ff9900'
 
 
-const MODAL_DOCUMENT_INFO = '#documentInfo'
-const MODAL_SELECTED_COLOR = '#colorEditPanel'
-const MODAL_NEW_COLOR = '#newColorPanel'
+const MODAL_DOCUMENT_INFO   = 'documentInfo'
+const MODAL_SELECTED_COLOR  = 'colorEditPanel'
+const MODAL_NEW_COLOR       = 'newColorPanel'
 
 const LS_DESIGN_DATA = 'designdata'
 const LS_COPYRIGHT_DATA = 'copyright'
@@ -107,6 +107,7 @@ new Vue({
 
             MODAL_DOCUMENT_INFO,
             MODAL_SELECTED_COLOR,
+            MODAL_NEW_COLOR,
 
             sketch: null,
 
@@ -1159,7 +1160,7 @@ new Vue({
             }
 
             sk.fill(0,0,0,0)
-            sk.stroke(this.getDrawColor())
+            sk.stroke(this.getColor()?.hex ?? WHITE)
             sk.square(x, y, tilesize)
         },
 
@@ -1769,7 +1770,7 @@ new Vue({
 
         openDialog(domId) {
             // this.haltKeyMonitoring()
-            let dialog = document.querySelector(domId)
+            let dialog = document.querySelector(`#${domId}`)
 
             if (dialog.open) {
                 dialog.close()
